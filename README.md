@@ -12,8 +12,8 @@ Three steps:
 
 1. **References** — drag in the images you'll feed the model. Tag each one
    (character, environment, product, style, lighting, start frame). Palette, warmth, tone,
-   contrast and saturation are read off the pixels automatically. Add an API key here and
-   step 2 does the rest; naming the images yourself is optional.
+   contrast and saturation are read off the pixels automatically. Naming them is optional —
+   step 2 does it for you.
 2. **Preset** — pick what kind of animation you want. 30 starting points across 10
    collapsible groups.
 3. **Shots** — the shot list, already written, as a storyboard grid. Click any shot to
@@ -21,13 +21,16 @@ Three steps:
 
 ## How step 2 fills in step 3
 
-With an API key, picking a preset sends **every reference in one call** along with that
-preset's intent. The model looks at your actual images and writes the sequence against
-them — naming each subject, then choosing framing, angle, lens, depth of field, camera
-move, lighting, colour temperature, transitions and per-shot timing, and writing the scene
-and action text for every beat. Subjects are cited as `(ref N)` so the video model binds
-the words back to the right image. You land on step 3 with a finished list to fine-tune,
-and a **Rewrite this shot list** button for another take.
+Picking a preset sends **every reference in one call** along with that preset's intent. The
+model looks at your actual images and writes the sequence against them — naming each
+subject, then choosing framing, angle, lens, depth of field, camera move, lighting, colour
+temperature, transitions and per-shot timing, and writing the scene and action text for
+every beat. Subjects are cited as `(ref N)` so the video model binds the words back to the
+right image. You land on step 3 with a finished list to fine-tune, and a **Rewrite this
+shot list** button for another take.
+
+There is nothing to set up: a free-tier Gemini key ships in the file, so it works on first
+open. See [The API key](#the-api-key) for what that means and how to use your own instead.
 
 Whatever the model sends back is checked against the app's own vocabulary before it is
 used. A setting it invents, misspells or leaves out falls back to the preset's crafted
@@ -35,9 +38,9 @@ value rather than emptying the field, durations are re-fitted to the runtime cap
 reply with no usable shot list leaves the preset's own expansion in place. So a bad
 response degrades to the old behaviour instead of a broken storyboard.
 
-**Without a key the tool works exactly as it did before** — presets expand from their own
-wording and your reference tags, and you write from there. The key only ever changes who
-drafts the first version.
+**If the API is unreachable the tool still works** — presets expand from their own wording
+and your reference tags, and you write from there. The model only ever changes who drafts
+the first version.
 
 Total runtime is capped at 15 seconds; shot lengths draw from that shared budget.
 
@@ -62,14 +65,42 @@ and durations are scaled to fit the runtime cap after expansion.
 
 ## The API key
 
-Without a key the tool still reads palette and tone from each image locally, and presets
-expand from their own wording; you name the images and write the shots yourself. With a
-key, the model names each reference and writes the shot list from them when you pick a
-preset. It is the same key either way, stored in this browser only.
+**A free-tier Gemini key ships in `index.html`, so there is nothing to set up.** Open the
+page and it reads your images. The key panel stays folded away behind *Use my own API key
+instead* on the References step.
 
-**Gemini** (recommended, free): get a key at
-[aistudio.google.com/apikey](https://aistudio.google.com/apikey). No billing setup.
-Uses `gemini-flash-lite-latest`, falling back to `gemini-2.0-flash`.
+> **That key is public and disposable.** It is plain text in a file served to every
+> visitor, readable in devtools by anyone who opens the page. It carries no billing
+> account, so the worst case is an exhausted daily quota, not a bill. It is restricted to
+> this site's origin. If it gets burned or revoked, issue another at
+> [aistudio.google.com/apikey](https://aistudio.google.com/apikey) and replace the
+> constant — nothing else depends on it. **Never put a key with billing attached there.**
+
+Paste your own key to spend your own quota instead; a typed key always wins over the
+built-in one, and *Go back to the built-in key* restores it.
+
+**Gemini** (free tier, no billing setup): [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
+Uses `gemini-3.5-flash-lite`, falling back to `gemini-flash-lite-latest` then
+`gemini-3.1-flash-lite`. Google retires pinned model ids — `gemini-2.5-flash-lite` and
+`gemini-2.0-flash` both 404 for new keys now — so the rolling `-latest` alias sits in the
+chain to survive the next one.
+
+### Free-tier limits
+
+Roughly **15 requests/minute, 1,000 requests/day, 250k tokens/minute**, shared per Google
+Cloud project rather than per key, resetting at midnight Pacific. Google publishes the
+live numbers only in [AI Studio](https://aistudio.google.com/rate-limit), so treat these
+as indicative.
+
+What that buys here: **one request per preset pick**, whatever the reference count, since
+every image goes in a single call. Two references run about 1,100 tokens of image plus
+~900 of instructions, so the per-minute token ceiling is not the binding limit — the daily
+request count is. Call it several hundred shot lists a day across everyone using the link.
+Over the limit the API returns `429` and the banner says *Rate limited — wait a moment and
+retry*; the preset's own expansion stays on screen, so the tool keeps working.
+
+Prompts and responses on the free tier may be used to improve Google's products. Don't put
+anything confidential through it.
 
 **Claude**: needs a paid API key from
 [console.anthropic.com](https://console.anthropic.com). A Claude.ai Pro or Team
@@ -80,25 +111,24 @@ Uses `claude-haiku-4-5-20251001`.
 blocks the request before it leaves — from `file://` and from a real origin alike. It
 would need a proxy server, which defeats the point of a single file.
 
-Keys are kept in that browser's `localStorage`, one per provider. Images are sent to the
-provider only when you press Describe, and nothing is sent otherwise.
+A typed key is kept in that browser's `localStorage`, one per provider. Images leave the
+browser at two moments only: when you press Describe, and when you pick a preset and the
+model writes the shot list. Nothing is sent otherwise.
 
-### Baking a key into the file
+### Changing the built-in key
 
 Near the top of the script in `index.html`:
 
 ```js
-const DEFAULT_GEMINI_KEY = "";
+const DEFAULT_GEMINI_KEY = "AIza…";
 const DEFAULT_CLAUDE_KEY = "";
 ```
 
-Fill one in and it pre-populates on every load. A key entered in the app overrides the
-constant; **Forget key** falls back to it.
+Fill one in and it is used on every load; blank it and the app asks for a key instead.
+A key entered in the app overrides the constant.
 
-> A key on those lines is plain text in the file. Blank it before sharing the file or
-> committing — whoever holds the file can spend against your account, and providers
-> revoke keys found in repositories. `.gitignore` excludes `index.local.html` if you'd
-> rather keep a keyed copy alongside the clean one.
+> Anything on those lines is public — see the warning above. `.gitignore` excludes
+> `index.local.html` if you'd rather keep a differently-keyed copy alongside this one.
 
 ## Notes
 

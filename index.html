@@ -1310,9 +1310,9 @@ const SHOT_FIELDS = ["scene","action","framing","angle","lens","dof","motion","s
  * progressive disclosure rather than a page each. */
 const STEPS = [
   { id:"refs", name:"References", q:"What are you working with?",
-    sub:"Drop in the images you'll feed the model, and say what each one is for. Add an API key here and the next step reads them for you. Skip it all if you're working from text alone." },
+    sub:"Drop in the images you'll feed the model, and say what each one is for. They get read for you on the next step. Skip this if you're working from text alone." },
   { id:"preset", name:"Preset", q:"What kind of animation?",
-    sub:"Pick the shape of the piece. With a key, the model then looks at your references and writes the shot list against them — subjects, framing, lighting and pacing. Without one, the preset expands on its own." },
+    sub:"Pick the shape of the piece and it gets written for you — the model looks at your references and builds the shot list against them: subjects, framing, lighting, pacing and timing. You fine-tune it on the next step." },
   { id:"shots", name:"Shots", q:"Your shot list",
     sub:"Written for your references, and yours to change. Click a shot to edit it; the prompt at the bottom updates as you go." },
 ];
@@ -1677,7 +1677,9 @@ P.atmos = id => {
 const preview = (fieldId, itemId) => P[fieldId] ? P[fieldId](itemId) : "";
 
 /* ===========================================================================
- * Vision descriptions from the user's own API key.
+ * Vision calls. A free-tier Gemini key ships in the file just below, so the
+ * tool reads your images with nothing to set up; a visitor can still paste
+ * their own key to spend their own quota instead, and a typed key always wins.
  *
  * Which providers can be called straight from a page like this is decided by
  * CORS, and it was measured, not assumed — from both file:// and
@@ -1690,25 +1692,28 @@ const preview = (fieldId, itemId) => P[fieldId] ? P[fieldId](itemId) : "";
  *                              a ChatGPT key needs a proxy server, so it
  *                              isn't offered here)
  *
- * Keys live in this browser's localStorage, one per provider. Images are sent
- * only when Describe is pressed.
+ * A typed key lives in this browser's localStorage, one per provider. Images
+ * leave the browser at two moments only: when Describe is pressed, and when a
+ * preset is picked and the model writes the shot list from them.
  * ------------------------------------------------------------------------- */
 
 /* ---------------------------------------------------------------------------
- * PUT AN API KEY HERE to have it filled in on every load — either one.
+ * A key on these lines is filled in on every load, so the tool works with
+ * nothing to set up. Leave them empty and the app asks for one instead; it
+ * persists in this browser either way, so you enter it once.
  *
  *   const DEFAULT_GEMINI_KEY = "AIza...";        // aistudio.google.com/apikey
  *   const DEFAULT_CLAUDE_KEY = "sk-ant-...";     // console.anthropic.com
  *
- * Leave them empty to type a key into the app instead; it persists in this
- * browser either way, so you enter it once.
- *
- * A key on these lines is plain text inside this file. Blank it before sending
- * the file to anyone, publishing it, or committing it: whoever holds the file
- * can spend against your account, and providers revoke keys found in public
- * repositories.
+ * A key here is PLAIN TEXT in a file served to every visitor — readable in
+ * devtools by anyone who opens the page, whatever the repository's visibility.
+ * The one below is a deliberately disposable free-tier key for this demo,
+ * restricted to the site's own origin and holding no billing account. Treat it
+ * as public. Never put a key with a billing account attached on these lines,
+ * and if the quota is being burned, revoke it at aistudio.google.com/apikey
+ * and issue another — nothing else in the tool depends on it.
  * ------------------------------------------------------------------------- */
-const DEFAULT_GEMINI_KEY = "";
+const DEFAULT_GEMINI_KEY = "AIzaSyAsfxKSjSfA5kfXU-vJLQ3pW40q2p2LpoM";
 const DEFAULT_CLAUDE_KEY = "";
 
 const PROVIDERS = {
@@ -1718,9 +1723,13 @@ const PROVIDERS = {
     placeholder: "AIza…",
     ls: "omni-animate-gemini-key",
     fallback: () => DEFAULT_GEMINI_KEY,
-    // flash-lite is the cheap fast one; the stable id is the retry if the
-    // rolling alias isn't live on an account.
-    models: ["gemini-flash-lite-latest", "gemini-2.0-flash"],
+    /* Flash-Lite is the cheap fast one, and its free tier is the most generous
+     * of the family. Google retires pinned versions out from under you — 2.5
+     * Flash-Lite and 2.0 Flash both 404 for new keys now, each with a "use the
+     * newer one" message — so the pinned current id is tried first and the
+     * rolling alias sits behind it, which keeps working across the next
+     * retirement without an edit here. */
+    models: ["gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-3.1-flash-lite"],
     request(model, key, images, prompt, maxTokens, temp) {
       return {
         url: `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`,
@@ -1794,9 +1803,19 @@ const VISION_PROMPT =
   "detail: one sentence, 25 words maximum, on materials, palette and mood. " +
   "Describe only what is visible; never mention that this is an image or a render.";
 
-const vision = { status:"idle", note:"", done:0, of:0, provider:"gemini" };
+const vision = { status:"idle", note:"", done:0, of:0, provider:"gemini", showKey:false };
 
 const provider = () => PROVIDERS[vision.provider];
+
+/** True when this provider is running on the key baked into the file rather
+ *  than one the visitor typed. That is the seamless case: nothing to set up,
+ *  so the key controls stay folded away behind a link. */
+function usingBuiltIn(pid = vision.provider) {
+  const p = PROVIDERS[pid];
+  let stored = "";
+  try { stored = localStorage.getItem(p.ls) || ""; } catch { /* private browsing */ }
+  return !stored.trim() && (p.fallback() || "").trim().length > 0;
+}
 const getKey = (pid = vision.provider) => {
   const p = PROVIDERS[pid];
   try { return localStorage.getItem(p.ls) || p.fallback() || ""; }
@@ -2583,6 +2602,36 @@ function visionPanel() {
   };
   const P = provider();
 
+  /* Seamless path: a key ships with the file, so there is nothing to ask for.
+   * Say what will happen, offer the early look, and keep the key machinery
+   * behind a link for anyone who wants to spend their own quota instead. */
+  if (usingBuiltIn() && !vision.showKey) {
+    const row = el("div", "vhead");
+    row.appendChild(el("span", "vlabel", "Scene reading &mdash; ready"));
+    if (vision.status === "working") row.appendChild(el("span", "vpct", `${vision.done} of ${vision.of}`));
+    const peek = el("button", "btn btn-ghost", "Describe now");
+    peek.type = "button";
+    peek.style.cssText = "padding:.5rem 1.1rem;font-size:.8rem";
+    peek.disabled = !state.refs.length || vision.status === "working";
+    peek.addEventListener("click", describeAll);
+    row.appendChild(peek);
+    box.appendChild(row);
+
+    box.appendChild(el("p", "hint",
+      `Your images are read for you &mdash; pick a preset on the next step and ${P.label} names each ` +
+      `reference and writes the shot list from them. Nothing to set up, no key to paste. ` +
+      `Describe now if you'd rather check the names before choosing.`));
+    if (vision.note) box.appendChild(el("p", "hint", `<span class="vwarn">${vision.note}</span>`));
+
+    const own = el("button", "vclear", "Use my own API key instead");
+    own.type = "button";
+    own.addEventListener("click", () => { vision.showKey = true; renderStep(); });
+    const wrap = el("p", "hint");
+    wrap.appendChild(own);
+    box.appendChild(wrap);
+    return box;
+  }
+
   const head = el("div", "vhead");
   head.appendChild(el("span", "vlabel", "Identify scene elements"));
   if (vision.status === "working") head.appendChild(el("span", "vpct", `${vision.done} of ${vision.of}`));
@@ -2616,20 +2665,8 @@ function visionPanel() {
   const go = el("button", "btn btn-accent", "Describe all");
   go.type = "button";
   go.style.cssText = "padding:.5rem 1.1rem;font-size:.8rem";
-  go.disabled = !hasKey() || vision.status === "working";
-  go.addEventListener("click", async () => {
-    vision.status = "working"; vision.note = ""; vision.done = 0; vision.of = state.refs.length;
-    renderStep();
-    for (const r of state.refs) {
-      r.busy = true; renderStep();
-      await describeOne(r);
-      r.busy = false; vision.done++;
-      if (vision.note) break;            // stop the run on the first real failure
-      renderStep();
-    }
-    vision.status = vision.note ? "failed" : "idle";
-    renderStep();
-  });
+  go.disabled = !hasKey() || !state.refs.length || vision.status === "working";
+  go.addEventListener("click", describeAll);
   row.appendChild(go);
   box.appendChild(row);
 
@@ -2643,15 +2680,48 @@ function visionPanel() {
         `pick next writes your shot list from these images; without one it expands from its own wording. ` +
         `A ChatGPT key can't be used from a page like this: OpenAI's API sends no CORS headers, so the browser blocks the call.`));
   if (vision.note) box.appendChild(el("p", "hint", `<span class="vwarn">${vision.note}</span>`));
-  if (hasKey()) {
-    const forget = el("button", "vclear", `Forget ${P.label} key`);
-    forget.type = "button";
-    forget.addEventListener("click", () => { setKey(""); vision.note = ""; renderStep(); });
+  // With a key baked into the file, clearing a typed one falls back to it
+  // rather than switching the feature off — so say that, not "forget".
+  const builtInAvailable = (P.fallback() || "").trim().length > 0;
+  if (hasKey() || builtInAvailable) {
     const wrap = el("p", "hint");
-    wrap.appendChild(forget);
-    box.appendChild(wrap);
+    if (!usingBuiltIn() && hasKey()) {
+      const forget = el("button", "vclear",
+        builtInAvailable ? `Go back to the built-in ${P.label} key` : `Forget ${P.label} key`);
+      forget.type = "button";
+      forget.addEventListener("click", () => {
+        setKey(""); vision.note = "";
+        if (builtInAvailable) vision.showKey = false;
+        renderStep();
+      });
+      wrap.appendChild(forget);
+    } else if (builtInAvailable) {
+      const hide = el("button", "vclear", "Never mind &mdash; use the built-in key");
+      hide.type = "button";
+      hide.addEventListener("click", () => { vision.showKey = false; vision.note = ""; renderStep(); });
+      wrap.appendChild(hide);
+    }
+    if (wrap.children.length) box.appendChild(wrap);
   }
   return box;
+}
+
+/** Caption every reference in turn, one call each. Optional now that picking a
+ *  preset reads them all anyway — this is the early look, for checking the
+ *  names before committing to a preset. */
+async function describeAll() {
+  if (!hasKey() || !state.refs.length || vision.status === "working") return;
+  vision.status = "working"; vision.note = ""; vision.done = 0; vision.of = state.refs.length;
+  renderStep();
+  for (const r of state.refs) {
+    r.busy = true; renderStep();
+    await describeOne(r);
+    r.busy = false; vision.done++;
+    if (vision.note) break;              // stop the run on the first real failure
+    renderStep();
+  }
+  vision.status = vision.note ? "failed" : "idle";
+  renderStep();
 }
 
 /** Caption one reference and write the result into state. Callers re-render. */
