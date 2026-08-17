@@ -1,0 +1,2783 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Omni-Animate Prompt Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+  :root {
+    --ink:#0a0a0a; --paper:#f5f3f0; --stone:#d4d0ca; --steel:#8a8680; --dim:#b8b4ae;
+    --accent:#e63920; --body:#3a3835;
+    --mono:'Space Mono', monospace;
+    --sans:'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  html { scroll-behavior:smooth; }
+  body {
+    font-family:var(--sans); background:var(--paper); color:var(--ink);
+    line-height:1.6; -webkit-font-smoothing:antialiased;
+  }
+  /* Grain overlay */
+  body::after {
+    content:''; position:fixed; inset:0; pointer-events:none; opacity:.03; z-index:9999;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  }
+  ::-webkit-scrollbar { width:10px; height:10px; background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--stone); border-radius:5px; }
+
+  .container { max-width:960px; margin:0 auto; padding:0 2rem; }
+
+  /* ---- masthead ---- */
+  .masthead { padding:2.5rem 0 0; text-align:center; }
+  .masthead .eyebrow {
+    font-family:var(--mono); font-size:.65rem; letter-spacing:.2em; text-transform:uppercase;
+    color:var(--steel); margin-bottom:.6rem;
+  }
+  .masthead h1 {
+    font-size:clamp(1.6rem,3.6vw,2.3rem); font-weight:700; letter-spacing:-.025em; line-height:1.1;
+  }
+  .masthead h1 span { color:var(--accent); }
+
+  /* ---- step rail ---- */
+  .rail {
+    display:flex; justify-content:center; flex-wrap:wrap; gap:0 1rem;
+    margin:2rem 0 0; padding:1rem 0 0; border-top:1px solid var(--stone);
+  }
+  .rstep {
+    appearance:none; border:0; background:transparent; cursor:pointer; white-space:nowrap;
+    font-family:var(--mono); font-size:.575rem; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--dim); padding:.35rem 0; display:inline-flex; align-items:center; gap:.45rem;
+    border-bottom:1.5px solid transparent; transition:color .2s, border-color .2s;
+  }
+  .rstep:hover { color:var(--ink); }
+  .rstep[aria-current="true"] { color:var(--ink); border-bottom-color:var(--accent); }
+  .rstep .n { color:var(--dim); }
+  .rstep.done .n { color:var(--accent); }
+  .rstep[aria-current="true"] .n { color:var(--accent); }
+
+  /* ---- step ---- */
+  main { padding:3.5rem 0 5rem; }
+  /* Only a real step change animates — an in-step re-render must not replay it. */
+  .step.enter { animation:fadeUp .45s ease both; }
+  @keyframes fadeUp { from{opacity:0; transform:translateY(16px)} to{opacity:1; transform:none} }
+  @media (prefers-reduced-motion:reduce) { .step.enter { animation:none; } }
+
+  .step-num {
+    font-family:var(--mono); font-size:.65rem; letter-spacing:.2em; text-transform:uppercase;
+    color:var(--dim); margin-bottom:.75rem; text-align:center;
+  }
+  .step h2 {
+    font-size:clamp(1.8rem,4vw,2.8rem); font-weight:700; letter-spacing:-.02em; line-height:1.15;
+    text-align:center; max-width:20ch; margin:0 auto;
+  }
+  .step .lede {
+    color:var(--body); font-size:1rem; line-height:1.7; text-align:center;
+    max-width:56ch; margin:1rem auto 0;
+  }
+  .rule { width:48px; height:2px; background:var(--ink); margin:2rem auto 0; }
+
+  .field { margin-top:3rem; }
+  .field > label, .grouplabel {
+    display:block; font-family:var(--mono); font-size:.7rem; font-weight:700;
+    letter-spacing:.15em; text-transform:uppercase; color:var(--ink); margin-bottom:1rem; text-align:center;
+  }
+  .grouplabel {
+    font-weight:400; color:var(--steel); font-size:.62rem; margin-top:1.5rem; letter-spacing:.18em;
+  }
+  .grouplabel:first-child { margin-top:0; }
+  .optional { text-transform:none; letter-spacing:0; font-weight:400; color:var(--dim); font-family:var(--sans); }
+
+  /* ---- cards ---- */
+  .cards {
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(152px,1fr));
+    gap:.85rem; max-width:840px; margin:0 auto;
+  }
+  .card {
+    appearance:none; cursor:pointer; font:inherit; text-align:center; position:relative;
+    background:#fff; border:1px solid var(--stone); border-radius:6px; padding:6px 6px 9px;
+    display:flex; flex-direction:column; gap:8px; transition:border-color .2s, box-shadow .2s, transform .2s;
+  }
+  .more {
+    appearance:none; background:transparent; border:0; cursor:pointer; display:block; margin:1.25rem auto 0;
+    font-family:var(--mono); font-size:.6rem; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--accent); border-bottom:1px solid transparent; padding-bottom:2px;
+  }
+  .more:hover { border-bottom-color:var(--accent); }
+  .card:hover { border-color:var(--steel); transform:translateY(-2px); }
+  .card[aria-pressed="true"] { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+  .card:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .card .frame {
+    position:relative; width:100%; aspect-ratio:1/1; border-radius:3px; overflow:hidden; background:#191a1e;
+  }
+  .card .cap {
+    font-family:var(--sans); font-size:.78rem; font-weight:500; line-height:1.25; color:var(--steel);
+    min-height:2.1em; display:flex; align-items:center; justify-content:center; padding:0 3px; transition:color .2s;
+  }
+  .card:hover .cap { color:var(--ink); }
+  .card[aria-pressed="true"] .cap { color:var(--ink); font-weight:700; }
+  .card .ord {
+    display:none; position:absolute; top:8px; right:8px; z-index:2; min-width:16px; height:16px;
+    padding:0 4px; border-radius:8px; background:var(--accent); color:#fff;
+    font-family:var(--mono); font-size:9px; font-weight:700; line-height:16px;
+  }
+  .card[aria-pressed="true"] .ord.on { display:block; }
+  .pv { display:block; width:100%; height:100%; }
+
+  /* Motion plays on hover only — a selected card holds still. */
+  .pv .anim {
+    animation-name:var(--a); animation-duration:var(--ad,2.4s);
+    animation-timing-function:var(--ae,cubic-bezier(.45,0,.55,1));
+    animation-iteration-count:infinite; animation-direction:var(--adir,alternate);
+    animation-play-state:paused; transform-box:fill-box; transform-origin:center;
+  }
+  .card:hover .pv .anim, .preset:hover .pv .anim { animation-play-state:running; }
+  @media (prefers-reduced-motion:reduce) { .pv .anim { animation:none !important; } }
+
+  @keyframes zin    { from{transform:scale(1)}          to{transform:scale(1.38)} }
+  @keyframes zout   { from{transform:scale(1.38)}       to{transform:scale(1)} }
+  @keyframes txL    { from{transform:translateX(13px)}  to{transform:translateX(-13px)} }
+  @keyframes txR    { from{transform:translateX(-13px)} to{transform:translateX(13px)} }
+  @keyframes tyU    { from{transform:translateY(-11px)} to{transform:translateY(11px)} }
+  @keyframes tyD    { from{transform:translateY(11px)}  to{transform:translateY(-11px)} }
+  @keyframes panL   { from{transform:translateX(15px) skewY(-2deg)}  to{transform:translateX(-15px) skewY(2deg)} }
+  @keyframes panR   { from{transform:translateX(-15px) skewY(2deg)}  to{transform:translateX(15px) skewY(-2deg)} }
+  @keyframes tiltU  { from{transform:translateY(-13px) scaleY(1.05)} to{transform:translateY(13px) scaleY(.95)} }
+  @keyframes tiltD  { from{transform:translateY(13px) scaleY(.95)}   to{transform:translateY(-13px) scaleY(1.05)} }
+  @keyframes craneU { from{transform:translateY(0) scale(1)}         to{transform:translateY(17px) scale(.84)} }
+  @keyframes orbL   { from{transform:perspective(190px) rotateY(-26deg)} to{transform:perspective(190px) rotateY(26deg)} }
+  @keyframes orbR   { from{transform:perspective(190px) rotateY(26deg)}  to{transform:perspective(190px) rotateY(-26deg)} }
+  @keyframes spin   { from{transform:perspective(210px) rotateY(0deg)}   to{transform:perspective(210px) rotateY(360deg)} }
+  @keyframes reveal { from{transform:perspective(200px) rotateY(-34deg)} to{transform:perspective(200px) rotateY(34deg)} }
+  @keyframes hand   {
+    0%{transform:translate(0,0) rotate(0)}      18%{transform:translate(2.6px,-1.8px) rotate(.7deg)}
+    36%{transform:translate(-1.8px,1.4px) rotate(-.6deg)} 54%{transform:translate(1.4px,2px) rotate(.5deg)}
+    72%{transform:translate(-2.4px,-1.2px) rotate(-.7deg)} 100%{transform:translate(0,0) rotate(0)}
+  }
+  @keyframes steady { 0%{transform:translate(-11px,0)} 50%{transform:translate(0,-2.5px)} 100%{transform:translate(11px,0)} }
+  @keyframes whip   { 0%{transform:translateX(0);opacity:1} 42%{transform:translateX(-46px);opacity:.25}
+                      58%{transform:translateX(46px);opacity:.25} 100%{transform:translateX(0);opacity:1} }
+  @keyframes heroP  { from{transform:perspective(200px) translateZ(0) rotateY(14deg)} to{transform:perspective(200px) translateZ(30px) rotateY(-6deg)} }
+  @keyframes descend{ from{transform:perspective(200px) rotateX(46deg) translateY(-6px)} to{transform:perspective(200px) rotateX(4deg) translateY(4px)} }
+  @keyframes crawl  { from{transform:translateX(20px) scale(1.5)} to{transform:translateX(-20px) scale(1.5)} }
+  @keyframes plxF   { from{transform:translateX(-16px)} to{transform:translateX(16px)} }
+  @keyframes plxB   { from{transform:translateX(-5px)}  to{transform:translateX(5px)} }
+  @keyframes boom   { from{transform:translate(0,0)}    to{transform:translate(var(--ex),var(--ey))} }
+  @keyframes sharpen{ from{opacity:0} to{opacity:1} }
+  @keyframes soften { from{opacity:1} to{opacity:0} }
+  @keyframes mix    { from{opacity:.45} to{opacity:1} }
+  @keyframes dzS    { from{transform:scale(1)} to{transform:scale(1.55)} }
+  @keyframes dzB    { from{transform:scale(1.4)} to{transform:scale(.8)} }
+  @keyframes slideIn{ from{transform:translateX(-100px)} to{transform:translateX(0)} }
+  @keyframes slideOut{from{transform:translateX(0)} to{transform:translateX(100px)} }
+  @keyframes bloom  { from{opacity:.45;transform:scale(.9)} to{opacity:1;transform:scale(2.3)} }
+  @keyframes drift  { from{transform:translate(0,4px)} to{transform:translate(3px,-4px)} }
+  @keyframes breathe{ from{transform:scale(.94)} to{transform:scale(1.06)} }
+  @keyframes fill   { from{transform:scaleX(0)} to{transform:scaleX(1)} }
+  @keyframes march  { from{transform:translateX(-17px)} to{transform:translateX(17px)} }
+
+  /* ---- presets ---- */
+  .presets { display:grid; grid-template-columns:repeat(auto-fill,minmax(370px,1fr)); gap:1rem; }
+  .preset {
+    appearance:none; cursor:pointer; font:inherit; text-align:left; display:flex; gap:1rem; align-items:flex-start;
+    background:#fff; border:1px solid var(--stone); border-radius:6px; padding:1rem;
+    transition:border-color .2s, box-shadow .2s, transform .2s;
+  }
+  .preset:hover { border-color:var(--steel); transform:translateY(-2px); }
+  .preset[aria-pressed="true"] { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+  .preset:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .preset .thumb { width:92px; height:92px; flex:none; border-radius:4px; overflow:hidden; background:#191a1e; }
+  .preset .txt { min-width:0; }
+  .preset .txt h4 { font-size:1rem; font-weight:700; letter-spacing:-.01em; line-height:1.2; }
+  .preset .txt p { font-size:.8rem; color:var(--steel); line-height:1.5; margin-top:.3rem; }
+  .preset .beats { display:flex; flex-direction:column; gap:.15rem; margin-top:.6rem; }
+  .preset .beat {
+    font-family:var(--mono); font-size:.58rem; letter-spacing:.04em; color:var(--steel);
+    display:flex; gap:.4rem; align-items:baseline;
+  }
+  .preset .beat b { color:var(--accent); font-weight:700; }
+  .preset .beat i { font-style:normal; color:var(--dim); margin-left:auto; }
+  .preset .meta {
+    display:block; margin-top:.55rem; font-family:var(--mono); font-size:.6rem;
+    letter-spacing:.12em; text-transform:uppercase; color:var(--dim);
+  }
+  .preset[aria-pressed="true"] .meta { color:var(--accent); }
+
+  /* ---- collapsible preset groups ---- */
+  .groupbtn {
+    appearance:none; cursor:pointer; width:100%; display:flex; align-items:center; gap:.7rem;
+    background:transparent; border:0; border-bottom:1px solid var(--stone); padding:.9rem .25rem;
+    margin-top:1.5rem; font-family:var(--mono); font-size:.68rem; font-weight:700;
+    letter-spacing:.15em; text-transform:uppercase; color:var(--ink); transition:color .2s;
+  }
+  .groupbtn:first-child { margin-top:0; }
+  .groupbtn:hover { color:var(--accent); }
+  .groupbtn .caret {
+    width:18px; height:18px; flex:none; border:1px solid var(--stone); border-radius:3px;
+    display:grid; place-items:center; font-size:.8rem; color:var(--steel);
+  }
+  .groupbtn.open .caret { background:var(--ink); border-color:var(--ink); color:var(--paper); }
+  .groupbtn .gname { margin-right:auto; }
+  .groupbtn .gcount { font-weight:400; color:var(--dim); letter-spacing:.1em; }
+  .groupbtn + .presets { margin-top:1.1rem; }
+
+  /* ---- reference auto-extraction ---- */
+  .swatches { display:flex; gap:3px; margin-bottom:.5rem; }
+  .sw { width:100%; height:18px; border-radius:2px; border:1px solid rgba(0,0,0,.08); }
+  .autotags { display:flex; flex-wrap:wrap; gap:.25rem; }
+  .autotag {
+    font-family:var(--mono); font-size:.55rem; letter-spacing:.08em; text-transform:uppercase;
+    background:var(--paper); border:1px solid var(--stone); border-radius:3px;
+    padding:.18rem .42rem; color:var(--steel);
+  }
+
+  /* ---- vision panel ---- */
+  .vpanel {
+    max-width:640px; margin:0 auto 1.5rem; background:#fff; border:1px solid var(--stone);
+    border-radius:6px; padding:1rem 1.15rem 1.1rem; text-align:left;
+  }
+  .vhead { display:flex; align-items:center; gap:1rem; }
+  .vlabel {
+    font-family:var(--mono); font-size:.65rem; font-weight:700; letter-spacing:.13em;
+    text-transform:uppercase; color:var(--ink); margin-right:auto;
+  }
+  .vpct { font-family:var(--mono); font-size:.65rem; color:var(--steel); font-variant-numeric:tabular-nums; }
+  .keyrow { display:flex; gap:.4rem; margin-top:.8rem; }
+  .keyinput {
+    flex:1; min-width:0; font-family:var(--mono); font-size:.78rem; letter-spacing:.02em;
+    padding:.5rem .65rem;
+  }
+  .vpanel code {
+    font-family:var(--mono); font-size:.92em; background:rgba(0,0,0,.05);
+    padding:.05em .3em; border-radius:3px;
+  }
+  .vpanel .hint { text-align:left; }
+  .vwarn { color:var(--accent); }
+  .vclear {
+    appearance:none; background:transparent; border:0; padding:0; cursor:pointer;
+    font-family:var(--mono); font-size:.58rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--dim); border-bottom:1px solid transparent;
+  }
+  .vclear:hover { color:var(--accent); border-bottom-color:var(--accent); }
+  .subjrow { display:flex; gap:.35rem; align-items:stretch; }
+  .subjrow input { flex:1; min-width:0; }
+  .vone {
+    appearance:none; cursor:pointer; flex:none; width:32px; border:1px solid var(--stone);
+    border-radius:6px; background:#fff; font-size:.85rem; line-height:1; color:var(--steel);
+  }
+  .vone:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
+  .vone:disabled { opacity:.4; cursor:default; }
+  .eltag {
+    font-family:var(--sans); font-size:.68rem; letter-spacing:0; text-transform:none;
+    background:rgba(230,57,32,.07); border:1px solid rgba(230,57,32,.28); border-radius:3px;
+    padding:.16rem .42rem; color:#8f2a17;
+  }
+  .refdetail {
+    font-size:.72rem; line-height:1.5; color:var(--steel); margin-bottom:.2rem;
+    max-height:4.5em; overflow:hidden;
+  }
+
+  /* ---- storyboard tiles ---- */
+  .tiles {
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(132px,1fr));
+    gap:.75rem; max-width:760px; margin:0 auto 1.5rem;
+  }
+  .tile {
+    appearance:none; cursor:pointer; font:inherit; text-align:left; position:relative;
+    background:#fff; border:1px solid var(--stone); border-radius:6px; padding:5px 5px 7px;
+    display:flex; flex-direction:column; gap:6px; transition:border-color .2s, box-shadow .2s, transform .2s;
+  }
+  .tile:hover { border-color:var(--steel); transform:translateY(-2px); }
+  .tile[aria-pressed="true"] { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+  .tile:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .tframe {
+    position:relative; display:block; width:100%; aspect-ratio:1/1; border-radius:3px;
+    overflow:hidden; background:#191a1e;
+  }
+  .tnum, .tdur {
+    position:absolute; font-family:var(--mono); font-size:.55rem; font-weight:700; letter-spacing:.05em;
+    background:rgba(10,10,10,.82); color:var(--paper); padding:.1rem .3rem; border-radius:2px;
+  }
+  .tnum { top:4px; left:4px; }
+  .tdur { bottom:4px; right:4px; }
+  .tile[aria-pressed="true"] .tnum { background:var(--accent); }
+  .tcap {
+    font-size:.68rem; line-height:1.3; color:var(--steel); padding:0 2px;
+    min-height:2.6em; overflow:hidden;
+  }
+  .tcap em { color:var(--dim); font-style:normal; }
+  .tile[aria-pressed="true"] .tcap { color:var(--ink); }
+  .addtile .tframe { background:transparent; border:1.5px dashed var(--stone); display:grid; place-items:center; }
+  .addtile .plus { font-size:1.6rem; color:var(--stone); line-height:1; }
+  .addtile:hover .tframe { border-color:var(--accent); }
+  .addtile:hover .plus { color:var(--accent); }
+
+  /* ---- shot list ---- */
+  .runbar { display:flex; align-items:center; gap:1rem; max-width:760px; margin:0 auto 1.5rem; }
+  .runlabel, .runval {
+    font-family:var(--mono); font-size:.62rem; letter-spacing:.12em; text-transform:uppercase; color:var(--steel);
+  }
+  .runval { color:var(--ink); font-weight:700; }
+  .runval.full { color:var(--accent); }
+  .runbar .bar { flex:1; height:4px; background:var(--stone); border-radius:2px; overflow:hidden; display:flex; gap:1px; margin:0; }
+  .bar span { background:var(--ink); height:100%; }
+  .bar span:nth-child(even) { background:var(--steel); }
+
+  .shotcard {
+    max-width:760px; margin:0 auto 1rem; background:#fff; border:1px solid var(--stone);
+    border-radius:6px; padding:1.1rem 1.25rem 1.25rem; text-align:left;
+  }
+  .shotcard.look { background:rgba(0,0,0,.02); }
+  .shothead { display:flex; align-items:center; gap:.6rem; margin-bottom:.9rem; }
+  .shotn {
+    font-family:var(--mono); font-size:.7rem; font-weight:700; letter-spacing:.15em;
+    text-transform:uppercase; margin-right:auto;
+  }
+  .shotdur { font-family:var(--mono); font-size:.9rem; font-weight:700; min-width:3ch; text-align:center; }
+  .shotdel {
+    appearance:none; background:transparent; border:0; cursor:pointer; margin-left:.5rem;
+    font-family:var(--mono); font-size:.58rem; letter-spacing:.1em; text-transform:uppercase; color:var(--dim);
+  }
+  .shotdel:hover { color:var(--accent); }
+  .shottext {
+    width:100%; background:transparent; border:0; border-bottom:1px solid var(--stone); border-radius:0;
+    padding:.5rem 0; font-family:var(--sans); font-size:.95rem; line-height:1.6; color:var(--ink); resize:vertical;
+  }
+  .shottext.sub { font-size:.85rem; color:var(--body); }
+  .shottext:focus { outline:none; border-bottom-color:var(--ink); }
+  .refins { display:flex; gap:.35rem; margin-top:.5rem; }
+  .refchip {
+    appearance:none; cursor:pointer; background:transparent; border:1px solid var(--stone); border-radius:3px;
+    font-family:var(--mono); font-size:.55rem; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--steel); padding:.2rem .45rem;
+  }
+  .refchip:hover { border-color:var(--accent); color:var(--accent); }
+
+  .setrow { display:flex; flex-wrap:wrap; gap:.35rem; margin-top:1rem; }
+  .setchip {
+    appearance:none; cursor:pointer; text-align:left; background:var(--paper);
+    border:1px solid transparent; border-radius:4px; padding:.3rem .55rem; transition:border-color .15s, background .15s;
+  }
+  .setchip:hover { border-color:var(--stone); background:#fff; }
+  .setchip[aria-pressed="true"] { border-color:var(--accent); background:#fff; }
+  .setchip .k {
+    display:block; font-family:var(--mono); font-size:.52rem; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--dim);
+  }
+  .setchip .v { display:block; font-family:var(--sans); font-size:.78rem; font-weight:500; color:var(--ink); }
+  .setchip.unset .v { color:var(--dim); }
+  .editor { margin-top:1rem; padding-top:1rem; border-top:1px solid var(--stone); }
+  .editor .field { margin-top:0; }
+  .editor .cards { max-width:none; }
+  .addshot {
+    display:block; max-width:760px; margin:0 auto 1rem; width:100%;
+    appearance:none; cursor:pointer; background:transparent; border:1.5px dashed var(--stone);
+    border-radius:6px; padding:.9rem; font-family:var(--sans); font-size:.85rem; color:var(--steel);
+  }
+  .addshot:hover { border-color:var(--accent); color:var(--accent); }
+
+  /* ---- chips ---- */
+  .chips { display:flex; flex-wrap:wrap; gap:.5rem; justify-content:center; }
+  .chip {
+    appearance:none; cursor:pointer; font-family:var(--sans); font-size:.85rem; font-weight:500;
+    background:#fff; color:var(--body); border:1px solid var(--stone); border-radius:6px;
+    padding:.6rem 1.1rem; transition:border-color .2s, background .2s, color .2s;
+  }
+  .chip:hover { border-color:var(--steel); color:var(--ink); }
+  .chip[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:var(--paper); }
+  .chip small { display:block; font-size:.7rem; font-weight:400; opacity:.7; margin-top:.15rem; }
+  .chip.num { min-width:3rem; font-family:var(--mono); }
+
+  /* ---- shot tabs ---- */
+  /* Hugs its content so there's no dead gap before "Apply to all". */
+  .shotbar { display:flex; justify-content:center; margin:2.5rem 0 0; }
+  .shottabs {
+    display:inline-flex; align-items:stretch; flex-wrap:wrap; gap:0;
+    border:1px solid var(--stone); border-radius:6px; overflow:hidden; background:#fff;
+  }
+  .stab {
+    appearance:none; border:0; border-right:1px solid var(--stone); background:#fff; cursor:pointer;
+    font-family:var(--mono); font-size:.65rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--steel); padding:.7rem 1.1rem; transition:background .2s, color .2s;
+  }
+  .stab:hover { background:var(--paper); color:var(--ink); }
+  .stab[aria-pressed="true"] { background:var(--ink); color:var(--paper); }
+  .stab .mark { color:var(--accent); margin-left:.4rem; }
+  .stab[aria-pressed="true"] .mark { color:var(--accent); }
+  .applyall {
+    border-right:0; border-left:1px solid var(--stone); font-family:var(--sans);
+    font-size:.75rem; text-transform:none; letter-spacing:0; color:var(--accent);
+  }
+  .applyall:hover { background:var(--accent); color:#fff; }
+
+  /* ---- timing ---- */
+  .budget { max-width:520px; margin:0 auto; }
+  .budget-head {
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-family:var(--mono); font-size:.65rem; letter-spacing:.12em; text-transform:uppercase; color:var(--steel);
+  }
+  .budget-head b { color:var(--ink); font-size:.8rem; }
+  .budget-head b.full { color:var(--accent); }
+  .bar { height:4px; background:var(--stone); border-radius:2px; margin:.6rem 0 1.5rem; overflow:hidden; display:flex; gap:1px; }
+  .bar span { background:var(--ink); height:100%; }
+  .bar span:nth-child(even) { background:var(--steel); }
+  .durrow {
+    display:flex; align-items:center; gap:1rem; padding:.7rem 0; border-bottom:1px solid var(--stone);
+  }
+  .durrow:last-child { border-bottom:0; }
+  .durrow .lbl { font-family:var(--mono); font-size:.7rem; letter-spacing:.1em; text-transform:uppercase; color:var(--steel); margin-right:auto; }
+  .durrow .val { font-family:var(--mono); font-size:1rem; font-weight:700; min-width:3ch; text-align:right; }
+  .step-btn {
+    appearance:none; width:28px; height:28px; border-radius:4px; border:1px solid var(--stone);
+    background:#fff; color:var(--ink); cursor:pointer; font-size:1rem; line-height:1; font-family:var(--mono);
+    transition:border-color .2s, background .2s;
+  }
+  .step-btn:hover:not(:disabled) { border-color:var(--ink); background:var(--ink); color:var(--paper); }
+  .step-btn:disabled { opacity:.3; cursor:not-allowed; }
+
+  /* ---- inputs ---- */
+  .inputwrap { max-width:640px; margin:0 auto; }
+  textarea, input[type="text"] {
+    width:100%; background:#fff; color:var(--ink); border:1px solid var(--stone); border-radius:6px;
+    padding:.85rem 1rem; font-family:var(--sans); font-size:.95rem; line-height:1.6; resize:vertical;
+    transition:border-color .2s;
+  }
+  textarea:focus, input[type="text"]:focus { outline:none; border-color:var(--ink); }
+  textarea::placeholder, input::placeholder { color:var(--dim); }
+  .hint { color:var(--steel); font-size:.8rem; line-height:1.6; margin-top:.75rem; text-align:center; }
+
+  /* ---- references ---- */
+  .drop {
+    max-width:640px; margin:0 auto; border:1.5px dashed var(--stone); border-radius:6px;
+    padding:3rem 2rem; text-align:center; background:rgba(0,0,0,.02); cursor:pointer;
+    transition:border-color .2s, background .2s;
+  }
+  .drop:hover, .drop.over { border-color:var(--accent); background:rgba(230,57,32,.04); }
+  .drop strong { display:block; font-size:1rem; font-weight:700; margin-bottom:.35rem; }
+  .drop span { color:var(--steel); font-family:var(--mono); font-size:.7rem; letter-spacing:.1em; text-transform:uppercase; }
+  .refgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:1rem; margin-top:1.5rem; }
+  .ref { background:#fff; border:1px solid var(--stone); border-radius:6px; overflow:hidden; }
+  .ref .thumb { position:relative; aspect-ratio:16/10; background:var(--ink); }
+  .ref .thumb img { width:100%; height:100%; object-fit:contain; display:block; }
+  .ref .tag {
+    position:absolute; left:.5rem; top:.5rem; background:var(--ink); color:var(--paper);
+    font-family:var(--mono); font-size:.55rem; letter-spacing:.1em; text-transform:uppercase;
+    padding:.25rem .5rem; border-radius:3px;
+  }
+  .ref .del {
+    position:absolute; right:.4rem; top:.4rem; width:22px; height:22px; border-radius:3px;
+    background:var(--ink); color:var(--paper); border:0; cursor:pointer; font-size:.8rem; line-height:1;
+  }
+  .ref .del:hover { background:var(--accent); }
+  .ref .body { padding:.75rem .85rem .85rem; }
+  .ref .cats { display:flex; flex-wrap:wrap; gap:.25rem; margin-bottom:.55rem; justify-content:flex-start; }
+  .ref .cats .chip { padding:.2rem .5rem; font-size:.65rem; border-radius:4px; }
+  .ref input[type="text"] { padding:.45rem .55rem; font-size:.82rem; }
+  .reflabel {
+    display:block; font-family:var(--mono); font-size:.52rem; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--dim); margin:.55rem 0 .3rem;
+  }
+  .reflabel:first-child { margin-top:0; }
+  .refsubject { margin-bottom:.2rem; }
+  .refphrase {
+    margin-top:.7rem; padding-top:.6rem; border-top:1px solid var(--stone);
+    font-size:.78rem; line-height:1.5; color:var(--body); font-style:italic;
+  }
+  .rebuild {
+    display:block; max-width:760px; margin:0 auto 1.25rem; width:100%;
+    appearance:none; cursor:pointer; background:transparent; border:1px solid var(--stone);
+    border-radius:6px; padding:.6rem; font-family:var(--mono); font-size:.6rem;
+    letter-spacing:.12em; text-transform:uppercase; color:var(--steel);
+  }
+  .rebuild:hover { border-color:var(--accent); color:var(--accent); }
+
+  /* ---- nav ---- */
+  .nav {
+    display:flex; align-items:center; justify-content:center; gap:1.5rem;
+    margin-top:4rem; padding-top:2rem; border-top:1px solid var(--stone);
+  }
+  .btn {
+    appearance:none; cursor:pointer; font-family:var(--sans); font-size:.9rem; font-weight:500;
+    border-radius:6px; padding:.75rem 1.75rem; border:1px solid var(--ink);
+    background:var(--ink); color:var(--paper); transition:background .2s, color .2s, opacity .2s;
+  }
+  .btn:hover { background:#2a2825; }
+  .btn-ghost { background:transparent; color:var(--ink); border-color:var(--stone); }
+  .btn-ghost:hover { background:transparent; border-color:var(--ink); }
+  .btn-accent { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .btn-accent:hover { background:#c72d16; }
+  .btn:disabled { opacity:.3; cursor:not-allowed; }
+  .nav .count { font-family:var(--mono); font-size:.65rem; letter-spacing:.15em; text-transform:uppercase; color:var(--dim); }
+
+  /* ---- review ---- */
+  .summary { max-width:760px; margin:0 auto; }
+  .srow {
+    display:grid; grid-template-columns:150px 1fr auto; gap:1rem; align-items:baseline;
+    padding:.7rem 0; border-bottom:1px solid var(--stone);
+  }
+  .srow dt { font-family:var(--mono); font-size:.6rem; letter-spacing:.12em; text-transform:uppercase; color:var(--steel); }
+  .srow dd { margin:0; color:var(--body); font-size:.9rem; }
+  .srow dd em { color:var(--dim); font-style:normal; }
+  .srow button {
+    appearance:none; background:transparent; border:0; cursor:pointer; padding:0;
+    font-family:var(--mono); font-size:.6rem; letter-spacing:.1em; text-transform:uppercase; color:var(--accent);
+  }
+  .srow button:hover { text-decoration:underline; }
+  .shotblock { margin-top:2.5rem; }
+  .shotblock > h3 {
+    font-family:var(--mono); font-size:.7rem; font-weight:700; letter-spacing:.15em; text-transform:uppercase;
+    color:var(--ink); padding-bottom:.5rem; border-bottom:2px solid var(--ink);
+  }
+
+  /* ---- prompt block ---- */
+  .promptwrap { max-width:760px; margin:2.5rem auto 0; padding-top:2rem; border-top:1px solid var(--stone); }
+  .prompt-head { display:flex; align-items:center; gap:.75rem; margin-bottom:1rem; }
+  .prompt-head h3 {
+    font-family:var(--mono); font-size:.7rem; font-weight:700; letter-spacing:.15em;
+    text-transform:uppercase; margin-right:auto;
+  }
+  .seg { display:flex; border:1px solid var(--stone); border-radius:6px; overflow:hidden; }
+  .seg > button {
+    appearance:none; border:0; border-right:1px solid var(--stone); cursor:pointer; background:#fff;
+    color:var(--steel); font-family:var(--mono); font-size:.6rem; letter-spacing:.1em; text-transform:uppercase;
+    padding:.45rem .8rem; transition:background .2s, color .2s;
+  }
+  .seg > button:last-child { border-right:0; }
+  .seg > button[aria-pressed="true"] { background:var(--ink); color:var(--paper); }
+  #output {
+    width:100%; min-height:22rem; background:var(--ink); color:#c8c4be; border:0; border-radius:6px;
+    padding:1.5rem; font-family:var(--mono); font-size:.8rem; line-height:1.8; white-space:pre-wrap; resize:vertical;
+  }
+  #output:focus { outline:none; }
+  .meter {
+    display:flex; gap:1.5rem; margin-top:.75rem; font-family:var(--mono);
+    font-size:.6rem; letter-spacing:.1em; text-transform:uppercase; color:var(--dim);
+  }
+  .meter b { color:var(--steel); font-weight:700; }
+  .meter .warn { color:var(--accent); }
+
+  @media (max-width:640px) {
+    .container { padding:0 1.25rem; }
+    .rail { gap:0 .9rem; }
+    .srow { grid-template-columns:1fr; gap:.2rem; }
+    .shottabs { flex-direction:column; align-items:stretch; width:100%; }
+    .stab { border-right:0; border-bottom:1px solid var(--stone); }
+    .applyall { border-left:0; border-bottom:0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Shared gradient/filter defs, referenced by every preview by id. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <!-- userSpaceOnUse pins the ramp to the visible 0-100 band, so oversized
+       backdrops (which keep translating scenes from exposing bare canvas)
+       still grade across the frame rather than across the larger rect. -->
+  <linearGradient id="bgN" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="100"><stop offset="0" stop-color="#2f3037"/><stop offset="1" stop-color="#191a1e"/></linearGradient>
+  <linearGradient id="bgWarm" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="100"><stop offset="0" stop-color="#5c3d24"/><stop offset="1" stop-color="#20150f"/></linearGradient>
+  <linearGradient id="bgCool" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="100"><stop offset="0" stop-color="#21344a"/><stop offset="1" stop-color="#101820"/></linearGradient>
+  <linearGradient id="bgHigh" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="100"><stop offset="0" stop-color="#f4f4f6"/><stop offset="1" stop-color="#cfcfd6"/></linearGradient>
+  <linearGradient id="bgLow" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="100"><stop offset="0" stop-color="#1b1b20"/><stop offset="1" stop-color="#0a0a0c"/></linearGradient>
+  <linearGradient id="bgNight" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="100"><stop offset="0" stop-color="#17233f"/><stop offset="1" stop-color="#090c15"/></linearGradient>
+  <linearGradient id="bgGold" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="100"><stop offset="0" stop-color="#e8a860"/><stop offset=".55" stop-color="#8a4f28"/><stop offset="1" stop-color="#2a1a12"/></linearGradient>
+  <linearGradient id="bgNeon" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="100"><stop offset="0" stop-color="#341340"/><stop offset="1" stop-color="#0d0716"/></linearGradient>
+  <linearGradient id="bgFlat" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="100"><stop offset="0" stop-color="#5b6068"/><stop offset="1" stop-color="#43474e"/></linearGradient>
+  <linearGradient id="bgWhite" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="100"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e9e9ee"/></linearGradient>
+  <radialGradient id="gW"><stop offset="0" stop-color="#ffffff" stop-opacity=".9"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient>
+  <radialGradient id="gWarm"><stop offset="0" stop-color="#ffcf94" stop-opacity=".95"/><stop offset="1" stop-color="#ffcf94" stop-opacity="0"/></radialGradient>
+  <radialGradient id="gCool"><stop offset="0" stop-color="#a9d0ff" stop-opacity=".9"/><stop offset="1" stop-color="#a9d0ff" stop-opacity="0"/></radialGradient>
+  <radialGradient id="gPink"><stop offset="0" stop-color="#ff5fa8" stop-opacity=".95"/><stop offset="1" stop-color="#ff5fa8" stop-opacity="0"/></radialGradient>
+  <!-- Static direction ramps: they let a paused fade card read as "from black"
+       vs "to black" without hiding the scene behind a solid overlay. -->
+  <linearGradient id="fFromB" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="100" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".97"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>
+  <linearGradient id="fToB" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="100" y2="0"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".97"/></linearGradient>
+  <linearGradient id="fFromW" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="100" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".97"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+  <linearGradient id="fToW" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="100" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".97"/></linearGradient>
+  <radialGradient id="vigR"><stop offset=".45" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".8"/></radialGradient>
+  <filter id="fb1"><feGaussianBlur stdDeviation="1"/></filter>
+  <filter id="fb2"><feGaussianBlur stdDeviation="2.2"/></filter>
+  <filter id="fb4"><feGaussianBlur stdDeviation="5.5"/></filter>
+  <pattern id="grain" width="9" height="9" patternUnits="userSpaceOnUse">
+    <circle cx="1.5" cy="2" r=".7" fill="#fff" opacity=".5"/><circle cx="6" cy="1" r=".55" fill="#fff" opacity=".35"/>
+    <circle cx="3.5" cy="6" r=".6" fill="#fff" opacity=".45"/><circle cx="7.5" cy="7" r=".5" fill="#fff" opacity=".3"/>
+  </pattern>
+</defs></svg>
+
+<div class="container">
+  <div class="masthead">
+    <h1>Omni-Animate <span>Prompt Builder</span></h1>
+    <nav class="rail" id="rail"></nav>
+  </div>
+  <main id="stage"></main>
+</div>
+
+<input type="file" id="filein" accept="image/*" multiple hidden />
+
+<script>
+"use strict";
+
+/* ===========================================================================
+ * 1. Option vocabulary — [id, card label, prose fragment]
+ * ======================================================================== */
+
+const FIELD = {
+  scene: { type:"textarea", label:"Scene & subject", rows:3,
+    placeholder:"A matte-black cordless drill resting on a poured concrete slab in an empty workshop" },
+  action: { type:"text", label:"Subject action",
+    placeholder:"the chuck rotates a quarter turn and the bit catches the light" },
+
+  framing: { label:"Framing", groups:[
+    { name:"Cinematic", items:[
+      ["ews","Extreme wide","an extreme wide shot"], ["ws","Wide","a wide shot"],
+      ["mws","Medium wide","a medium wide shot"], ["ms","Medium","a medium shot"],
+      ["mcu","Medium close-up","a medium close-up"], ["cu","Close-up","a close-up"],
+      ["ecu","Extreme close-up","an extreme close-up"],
+    ]},
+    { name:"Product", items:[
+      ["hero","Hero three-quarter","a hero three-quarter framing"],
+      ["full","Full product","a full-product framing with even margins"],
+      ["detail","Detail crop","a tight detail crop"], ["macro","Macro","a macro framing"],
+    ]},
+  ]},
+  angle: { label:"Camera angle", groups:[
+    { name:"Cinematic", items:[
+      ["eye","Eye level","at eye level"], ["low","Low angle","from a low angle"],
+      ["high","High angle","from a high angle"], ["top","Top-down","from directly overhead"],
+      ["dutch","Dutch tilt","with a canted dutch tilt"], ["worm","Worm's eye","from a worm's-eye view"],
+    ]},
+    { name:"Product", items:[
+      ["tq","Three-quarter front","from a three-quarter front angle"],
+      ["profile","Straight-on profile","from a straight-on profile"],
+      ["elev45","45° elevated","from a 45° elevated angle"], ["table","Table level","from table level"],
+    ]},
+  ]},
+  lens: { label:"Focal length", items:[
+    ["14","14mm","a 14mm ultra-wide lens"], ["24","24mm","a 24mm wide lens"], ["35","35mm","a 35mm lens"],
+    ["50","50mm","a 50mm lens"], ["85","85mm","an 85mm lens"], ["135","135mm","a 135mm telephoto lens"],
+    ["macro","100mm macro","a 100mm macro lens"], ["anamorphic","Anamorphic","a 40mm anamorphic lens"],
+    ["tilt","Tilt-shift","a tilt-shift lens"],
+  ]},
+  dof: { label:"Depth of field", items:[
+    ["deep","Deep focus","deep focus front to back"], ["moderate","Moderate","moderate depth of field"],
+    ["shallow","Shallow","shallow depth of field"], ["razor","Razor-thin","a razor-thin plane of focus"],
+  ]},
+  motion: { label:"Movement", max:2, groups:[
+    { name:"Cinematic", items:[
+      ["locked","Locked off","holds locked off"], ["dolly-in","Dolly in","pushes in toward the subject"],
+      ["dolly-out","Dolly out","pulls back away from the subject"], ["truck-l","Truck left","trucks left"],
+      ["truck-r","Truck right","trucks right"], ["ped-up","Pedestal up","rises straight up"],
+      ["ped-down","Pedestal down","descends straight down"], ["pan-l","Pan left","pans left"],
+      ["pan-r","Pan right","pans right"], ["tilt-up","Tilt up","tilts up"], ["tilt-down","Tilt down","tilts down"],
+      ["crane","Crane up","cranes up and over the scene"],
+      ["arc-l","Arc left","arcs to camera-left around the subject"],
+      ["arc-r","Arc right","arcs to camera-right around the subject"],
+      ["handheld","Handheld float","drifts with a subtle handheld float"],
+      ["steadicam","Steadicam follow","follows the subject on a smooth steadicam"],
+      ["whip","Whip pan","whips across to a new framing"], ["zoom-in","Zoom in","zooms in"],
+      ["zoom-out","Zoom out","zooms out"], ["rack","Rack focus","racks focus to the foreground"],
+      ["dolly-zoom","Dolly zoom","dolly-zooms, holding the subject as the background warps"],
+    ]},
+    { name:"Product", items:[
+      ["turntable","360° turntable","orbits the subject a full 360° on a level turntable"],
+      ["orbit-reveal","Slow orbit reveal","orbits slowly to reveal the far side of the subject"],
+      ["hero-push","Hero push-in","pushes in along the subject's long axis to a hero framing"],
+      ["descend","Top-down descend","descends from overhead to a three-quarter view"],
+      ["detail-pass","Macro detail pass","travels across the surface in a tight macro pass"],
+      ["parallax","Parallax slide","slides laterally, separating foreground and background by parallax"],
+      ["exploded","Exploded drift","drifts back as the components separate into an exploded view"],
+    ]},
+  ]},
+  speed: { label:"Move speed", items:[
+    ["veryslow","Very slow","very slowly"], ["slow","Slow","slowly"],
+    ["steady","Steady","steadily"], ["fast","Fast","quickly"],
+  ]},
+  light: { label:"Setup", groups:[
+    { name:"Studio", items:[
+      ["soft-key","Soft key","a large soft key with gentle shadow falloff"],
+      ["three-point","Three-point","a classic three-point setup with key, fill and backlight"],
+      ["high-key","High-key seamless","high-key lighting on a seamless white sweep"],
+      ["low-key","Low-key single source","a single hard source, deep shadows, low-key contrast"],
+      ["gradient","Gradient sweep","a graduated wash across the backdrop"],
+      ["rim","Hard rim","a hard rim light separating the subject from the background"],
+      ["toplight","Top light + fill","an overhead top light with a bounce card lifting the shadows"],
+      ["ring","Ring light","an even ring light with a circular catchlight"],
+    ]},
+    { name:"Natural", items:[
+      ["golden","Golden hour","low golden-hour sun raking across the scene"],
+      ["overcast","Overcast diffuse","flat overcast diffusion"],
+      ["noon","Hard midday","hard midday sun with crisp shadows"],
+      ["window","Window light","soft directional window light"],
+      ["blue-hour","Blue hour","cool blue-hour ambience"], ["moon","Moonlight","pale moonlight"],
+      ["neon","Neon practicals","neon practicals throwing saturated color"],
+      ["fire","Firelight","flickering firelight"],
+      ["shafts","Volumetric shafts","volumetric shafts cutting through the air"],
+    ]},
+  ]},
+  // Trailing modifiers so they attach after a lighting phrase that already has a "with" clause.
+  temp: { label:"Color temperature", items:[
+    ["warm","Warm","warm in tone"], ["neutral","Neutral","neutral in balance"],
+    ["cool","Cool","cool in tone"], ["mixed","Mixed","mixing warm and cool sources"],
+  ]},
+  transIn: { label:"Opens with", items:[
+    ["cut","Cut in","a straight cut in"], ["fade-black","Fade from black","a fade up from black"],
+    ["fade-white","Fade from white","a fade up from white"], ["dissolve","Dissolve in","a dissolve in"],
+    ["whip","Whip in","a whip-in from the previous frame"],
+    ["match","Match cut in","a match cut on the subject's silhouette"],
+    ["bloom","Light bloom in","a bloom of light resolving into the scene"],
+  ]},
+  transOut: { label:"Ends with", items:[
+    ["cut","Hard cut","a hard cut"], ["fade-black","Fade to black","a fade to black"],
+    ["fade-white","Fade to white","a fade to white"], ["dissolve","Dissolve out","a dissolve out"],
+    ["whip","Whip out","a whip-out"], ["hold","Hold final frame","a hold on the final frame"],
+    ["match","Match cut out","a match cut out on shape"],
+  ]},
+  style: { label:"Aesthetic", items:[
+    ["product","Photoreal product film","photorealistic product-film aesthetic"],
+    ["cinematic","Cinematic","cinematic filmic grade"], ["doc","Documentary","naturalistic documentary look"],
+    ["editorial","Editorial","clean editorial styling"], ["anime","Anime cel","anime cel-shaded styling"],
+    ["render","Stylized 3D render","stylized 3D render look"], ["clay","Clay / matte","untextured clay-render look"],
+    ["sketch","Sketch to render","a design sketch resolving into a finished render"],
+  ]},
+  cadence: { label:"Motion cadence", items:[
+    ["24","24fps cinematic","24fps with natural motion blur"], ["30","30fps neutral","30fps, neutral cadence"],
+    ["60","60fps crisp","60fps, crisp and fluid"], ["slowmo","Slow motion","slow motion"],
+    ["timelapse","Time-lapse","time-lapse compression"],
+  ]},
+  atmos: { label:"Atmosphere", max:3, items:[
+    ["grain","Film grain","fine film grain"], ["flare","Anamorphic flare","anamorphic lens flare"],
+    ["haze","Atmospheric haze","atmospheric haze"], ["bokeh","Bokeh highlights","soft bokeh highlights"],
+    ["dust","Floating dust","floating dust motes"], ["wet","Wet surfaces","wet reflective surfaces"],
+    ["vignette","Vignette","a soft vignette"], ["breathing","Lens breathing","subtle lens breathing"],
+  ]},
+};
+
+/* The everyday subset shown first for each field. The rest stay one click away
+ * behind "show all" — and a non-core option that's already chosen (from a
+ * preset, say) is always rendered so a selection can never hide. */
+const CORE = {
+  framing: ["ws","ms","mcu","cu","hero","macro"],
+  angle:   ["eye","low","high","tq"],
+  lens:    ["24","35","50","85","macro"],
+  motion:  ["locked","dolly-in","dolly-out","arc-l","turntable","handheld","crane","truck-r"],
+  light:   ["soft-key","three-point","high-key","low-key","golden","window"],
+  transIn: ["cut","fade-black","dissolve","match"],
+  transOut:["cut","fade-black","dissolve","hold"],
+  style:   ["product","cinematic","doc","render"],
+  cadence: ["24","60","slowmo"],
+  atmos:   ["grain","flare","haze","bokeh"],
+};
+
+/** Reference categories: [id, label, role phrase used in the prompt]. */
+const REF_CATS = [
+  ["character","Character","the character"], ["environment","Environment","the environment"],
+  ["product","Product","the product"], ["style","Style","the visual style"],
+  ["lighting","Lighting","the lighting"], ["start","Start frame","the opening frame"],
+];
+
+/* An image's measurable qualities are read off its pixels on upload — palette,
+ * tone, contrast, saturation and warmth. Those are the details a browser can
+ * genuinely extract on its own; what the thing *is* still has to be named,
+ * which is the one field left to fill in. */
+
+const TONE = [[.28,"low-key"],[.62,"mid-key"],[1,"high-key"]];
+const CONTRAST = [[.14,"flat"],[.26,"even"],[1,"high-contrast"]];
+const SAT = [[.10,"near-monochrome"],[.30,"muted"],[.55,"balanced"],[1,"saturated"]];
+const band = (v, table) => (table.find(t => v <= t[0]) || table[table.length - 1])[1];
+
+/** Read palette and tone straight off the pixels. Runs once per upload. */
+function analyseImage(url) {
+  return new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      const W = 64, H = Math.max(1, Math.round(W * img.height / img.width));
+      const c = document.createElement("canvas");
+      c.width = W; c.height = H;
+      const ctx = c.getContext("2d", { willReadFrequently:true });
+      ctx.drawImage(img, 0, 0, W, H);
+      let px;
+      try { px = ctx.getImageData(0, 0, W, H).data; }
+      catch { return res(null); }
+
+      let n = 0, sumL = 0, sumL2 = 0, sumS = 0, sumR = 0, sumB = 0;
+      const bins = new Map();
+      for (let i = 0; i < px.length; i += 4) {
+        if (px[i + 3] < 128) continue;                 // skip transparent
+        const r = px[i] / 255, g = px[i + 1] / 255, b = px[i + 2] / 255;
+        const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+        const l = (mx + mn) / 2;
+        n++; sumL += l; sumL2 += l * l; sumR += r; sumB += b;
+        sumS += mx === mn ? 0 : (mx - mn) / (1 - Math.abs(2 * l - 1) || 1);
+        // 4 bits per channel is coarse enough to cluster a palette
+        const k = ((px[i] >> 4) << 8) | ((px[i + 1] >> 4) << 4) | (px[i + 2] >> 4);
+        bins.set(k, (bins.get(k) || 0) + 1);
+      }
+      if (!n) return res(null);
+
+      const L = sumL / n;
+      const sd = Math.sqrt(Math.max(0, sumL2 / n - L * L));
+      const S = Math.min(1, sumS / n);
+      const warmth = (sumR - sumB) / n;
+      const swatches = [...bins.entries()].sort((x, y) => y[1] - x[1]).slice(0, 5)
+        .map(([k]) => "#" + [(k >> 8) & 15, (k >> 4) & 15, k & 15]
+          .map(v => ((v * 17) | 0).toString(16).padStart(2, "0")).join(""));
+
+      res({
+        tone: band(L, TONE),
+        contrast: band(sd, CONTRAST),
+        sat: band(S, SAT),
+        temp: warmth > .045 ? "warm" : warmth < -.045 ? "cool" : "neutral",
+        swatches,
+      });
+    };
+    img.onerror = () => res(null);
+    img.src = url;
+  });
+}
+
+/** The visual qualities, as prose. */
+function autoPhrase(a) {
+  if (!a) return "";
+  const sat = a.sat === "balanced" ? null : a.sat;
+  return [a.temp === "neutral" ? null : a.temp, a.tone, a.contrast, sat]
+    .filter(Boolean).join(", ");
+}
+
+/**
+ * The prose a reference contributes. No leading article — the subject is a
+ * proper noun or a name the user typed, so it reads as given.
+ */
+function describeRef(r) {
+  const subject = (r.subject || "").trim();
+  const auto = autoPhrase(r.auto);
+  if (subject && auto) return `${subject} — ${auto}`;
+  if (subject) return subject;
+  if (auto) return auto;
+  return (REF_CATS.find(c => c[0] === r.cat) || [, "reference"])[1].toLowerCase() + " reference";
+}
+
+/* Total runtime is capped, so shot lengths draw from one shared budget. */
+const MAX_TOTAL = 15, MIN_SHOT = 1, MAX_SHOTS = 8;
+
+/* Starting points. Each carries written scene/action text per shot, not just
+ * settings, so a preset lands you on a finished prompt rather than a filled
+ * form. `{cat|fallback}` tokens resolve against uploaded references — with a
+ * matching upload they become that image's note plus "(ref N)", without one
+ * they fall back to the generic wording. `pv` names a preview to show. */
+/* Starting points. Each carries written scene/action text per shot, not just
+ * settings, so a preset lands you on a finished prompt rather than a filled
+ * form. `{cat|fallback}` tokens resolve against uploaded references — with a
+ * matching upload they become that image's note plus "(ref N)", without one
+ * they fall back to the generic wording. `pv` names a preview to show. */
+/* Presets are recipes, not fixed shot lists. Each beat is either `once` or
+ * `per` a reference category — a `per` beat repeats for every matching image
+ * you uploaded, so four character refs build four beats and one builds one.
+ * Durations are hints; they get scaled to fit the runtime cap after expansion.
+ *
+ * Tokens: {this} is the reference the current beat expands for; {cat|fallback}
+ * pulls the first reference of a category, or the fallback wording if none. */
+const PRESETS = [
+  /* ---- game cinematic ---- */
+  { id:"char-reveal", group:"Game cinematic", name:"Character reveal", pv:["light","rim"],
+    sum:"An establishing wide, then a hero reveal for every character you upload.",
+    style:"cinematic", cadence:"24", atmos:["haze","grain"], endWith:"fade-black",
+    recipe:[
+      { role:"once", dur:4, framing:"ws", angle:"low", lens:"35", dof:"deep", motion:["dolly-in"], speed:"veryslow",
+        light:"rim", temp:"cool", transIn:"fade-black",
+        scene:"low drifting fog across {environment|a dim stone hall}, a silhouette held back in the dark",
+        action:"fog curls through the frame and a thin edge of light picks out one shoulder" },
+      { role:"per", cat:"character", dur:6, framing:"mcu", angle:"low", lens:"85", dof:"shallow",
+        motion:["arc-l"], speed:"slow", light:"three-point", temp:"cool", transIn:"dissolve",
+        scene:"a low hero framing on {this}, lit enough now to read every surface",
+        action:"the head turns slowly toward camera as the shoulders settle and breath clouds the air" }] },
+
+  { id:"boss-reveal", group:"Game cinematic", name:"Boss reveal", pv:["light","low-key"],
+    sum:"Scale first, then the eye. Tilt up the silhouette, drop to ground level, land on a close-up.",
+    style:"cinematic", cadence:"24", atmos:["haze","grain","vignette"], endWith:"cut",
+    recipe:[
+      { role:"once", dur:5, framing:"ews", angle:"low", lens:"24", dof:"deep", motion:["tilt-up"], speed:"veryslow",
+        light:"low-key", temp:"cool", transIn:"fade-black",
+        scene:"{environment|a ruined cathedral} in near darkness, something enormous occupying the far end of the hall",
+        action:"dust sifts down through the air as a low rumble shifts loose debris across the floor" },
+      { role:"per", cat:"character", dur:5, framing:"ws", angle:"worm", lens:"24", dof:"deep",
+        motion:["ped-up"], speed:"slow", light:"rim", temp:"cool", transIn:"cut",
+        scene:"{this} seen from ground level, filling the frame floor to ceiling",
+        action:"it straightens to full height, plates shifting and grinding along its back" },
+      { role:"once", dur:5, framing:"ecu", angle:"eye", lens:"135", dof:"razor", motion:["dolly-in"], speed:"slow",
+        light:"rim", temp:"warm", transIn:"match",
+        scene:"an extreme close-up on a single eye set deep in scarred plating",
+        action:"the eye opens, the pupil contracts and locks onto camera" }] },
+
+  { id:"combat-beat", group:"Game cinematic", name:"Combat beat", pv:["motion","whip"],
+    sum:"Whip into the clash, hang on the impact in slow motion, pull back to the aftermath.",
+    style:"cinematic", cadence:"24", atmos:["grain","dust"], endWith:"fade-black",
+    recipe:[
+      { role:"once", dur:4, framing:"ms", angle:"eye", lens:"35", dof:"moderate", motion:["whip"], speed:"fast",
+        light:"overcast", temp:"cool", transIn:"cut",
+        scene:"{character|two fighters} closing the distance across {environment|a rain-slicked courtyard}",
+        action:"they cover the ground in three strides and blades meet in a burst of sparks" },
+      { role:"once", dur:6, framing:"cu", angle:"low", lens:"85", dof:"shallow", motion:["dolly-in"], speed:"veryslow",
+        light:"rim", temp:"cool", transIn:"cut",
+        scene:"the point of impact held in close-up — locked blades, gritted teeth, debris hanging mid-air",
+        action:"sparks drift almost weightlessly and a shockwave ripples the standing water" },
+      { role:"once", dur:5, framing:"ws", angle:"high", lens:"24", dof:"deep", motion:["crane"], speed:"slow",
+        light:"overcast", temp:"cool", transIn:"cut",
+        scene:"a wide high angle on the courtyard as the exchange breaks apart",
+        action:"one fighter staggers back a step while the camera lifts away" }] },
+
+  { id:"env-flythrough", group:"Game cinematic", name:"Environment flythrough", pv:["light","golden"],
+    sum:"A crane and a push through every environment you upload.",
+    style:"cinematic", cadence:"24", atmos:["haze","flare"], endWith:"fade-black",
+    recipe:[
+      { role:"per", cat:"environment", dur:6, framing:"ews", angle:"high", lens:"24", dof:"deep",
+        motion:["crane"], speed:"slow", light:"golden", temp:"warm", transIn:"dissolve",
+        scene:"{this} seen wide, ridgelines and rooftops stacked back into the haze",
+        action:"low cloud slides across the middle distance as the light rakes in from the side" },
+      { role:"once", dur:5, framing:"ms", angle:"low", lens:"50", dof:"shallow", motion:["ped-up"], speed:"slow",
+        light:"golden", temp:"warm", transIn:"cut",
+        scene:"a low framing at the threshold of the landmark, {character|a lone figure} small against it",
+        action:"the camera rises to reveal the scale of the doorway above them" }] },
+
+  { id:"cutscene", group:"Game cinematic", name:"Cutscene dialogue", pv:["light","window"],
+    sum:"Shot / reverse shot — one coverage angle per character in the scene.",
+    style:"cinematic", cadence:"24", atmos:["grain"], endWith:"fade-black",
+    recipe:[
+      { role:"per", cat:"character", dur:7, framing:"mcu", angle:"tq", lens:"85", dof:"shallow",
+        motion:["handheld"], speed:"veryslow", light:"window", temp:"warm", transIn:"dissolve",
+        scene:"an over-the-shoulder framing past a foreground silhouette onto {this} in {environment|a lamplit interior}",
+        action:"they lean forward slightly and speak, eyes fixed off-camera" }] },
+
+  { id:"vehicle", group:"Game cinematic", name:"Vehicle reveal", pv:["light","neon"],
+    sum:"A motion pass and a hero settle for each vehicle, plus a shared material macro.",
+    style:"cinematic", cadence:"24", atmos:["wet","flare"], endWith:"hold",
+    recipe:[
+      { role:"per", cat:"product", dur:5, framing:"ws", angle:"low", lens:"24", dof:"deep",
+        motion:["parallax"], speed:"fast", light:"neon", temp:"mixed", transIn:"whip",
+        scene:"{this} moving fast through {environment|a wet neon-lit street}",
+        action:"reflected signage streaks across the bodywork as it passes camera" },
+      { role:"once", dur:5, framing:"macro", angle:"tq", lens:"macro", dof:"razor", motion:["detail-pass"], speed:"slow",
+        light:"soft-key", temp:"cool", transIn:"match",
+        scene:"a macro pass along the panel seam where paint meets exposed composite",
+        action:"the highlight travels the length of the seam and catches the badge" },
+      { role:"once", dur:5, framing:"hero", angle:"low", lens:"50", dof:"shallow", motion:["arc-r"], speed:"slow",
+        light:"rim", temp:"cool", transIn:"dissolve",
+        scene:"a hero three-quarter on the stationary vehicle against a dark studio void",
+        action:"the camera arcs to settle on the front three-quarter as the lights come up" }] },
+
+  /* ---- game animation ---- */
+  { id:"idle-loop", group:"Game animation", name:"Idle loop", pv:["light","soft-key"],
+    sum:"A locked-off, loop-ready idle pass for every character you upload.",
+    style:"render", cadence:"30", atmos:[], endWith:"hold",
+    recipe:[
+      { role:"per", cat:"character", dur:8, framing:"ms", angle:"eye", lens:"50", dof:"moderate",
+        motion:["locked"], speed:"veryslow", light:"soft-key", temp:"neutral", transIn:"cut",
+        scene:"{this} standing at rest in a relaxed idle against a plain neutral backdrop, full body clear of the frame edges",
+        action:"weight shifts subtly from one foot to the other, chest rising and falling, hands settling — the pose returns exactly to its start so the motion loops seamlessly" }] },
+
+  { id:"locomotion", group:"Game animation", name:"Locomotion pass", pv:["light","high-key"],
+    sum:"A side-on run cycle per character, then a shared third-person follow.",
+    style:"render", cadence:"60", atmos:[], endWith:"cut",
+    recipe:[
+      { role:"per", cat:"character", dur:5, framing:"mws", angle:"profile", lens:"50", dof:"deep",
+        motion:["truck-r"], speed:"steady", light:"high-key", temp:"neutral", transIn:"cut",
+        scene:"{this} running, framed dead side-on against a clean seamless backdrop, the camera tracking level with the hips",
+        action:"a full run cycle with clear contact, down, passing and up poses, arms counter-swinging" },
+      { role:"once", dur:5, framing:"ms", angle:"tq", lens:"35", dof:"moderate", motion:["steadicam"], speed:"steady",
+        light:"window", temp:"neutral", transIn:"cut",
+        scene:"the same run seen from behind and slightly above at third-person follow distance",
+        action:"the camera holds a fixed offset as they run, leaning into a gentle turn" }] },
+
+  { id:"ability", group:"Game animation", name:"Ability / VFX beat", pv:["light","neon"],
+    sum:"Windup, cast, impact — the three poses an ability animation has to sell.",
+    style:"render", cadence:"60", atmos:["flare","dust"], endWith:"fade-white",
+    recipe:[
+      { role:"once", dur:4, framing:"ms", angle:"low", lens:"35", dof:"moderate", motion:["locked"], speed:"slow",
+        light:"low-key", temp:"cool", transIn:"cut",
+        scene:"{character|a caster} dropping into a windup stance, energy gathering at the hands",
+        action:"the arms draw back and light builds between the palms, anticipation held for a beat" },
+      { role:"once", dur:4, framing:"cu", angle:"eye", lens:"85", dof:"shallow", motion:["dolly-in"], speed:"fast",
+        light:"neon", temp:"mixed", transIn:"cut",
+        scene:"a close-up on the hands at the moment of release",
+        action:"the gathered energy snaps forward and throws hard coloured light across the face" },
+      { role:"once", dur:4, framing:"ws", angle:"high", lens:"24", dof:"deep", motion:["dolly-out"], speed:"fast",
+        light:"neon", temp:"mixed", transIn:"cut",
+        scene:"a wide on the impact point as the effect lands in {environment|the arena floor}",
+        action:"a shockwave rings outward and debris lifts as the camera pulls back" }] },
+
+  { id:"expression", group:"Game animation", name:"Expression pass", pv:["light","three-point"],
+    sum:"A face-only performance pass per character, then an extreme close-up on the eyes.",
+    style:"render", cadence:"30", atmos:[], endWith:"cut",
+    recipe:[
+      { role:"per", cat:"character", dur:6, framing:"cu", angle:"eye", lens:"85", dof:"shallow",
+        motion:["locked"], speed:"veryslow", light:"three-point", temp:"neutral", transIn:"cut",
+        scene:"{this}, head and shoulders, framed square to camera on a neutral grey backdrop",
+        action:"the expression moves through neutral, to concern, to a held resolve, brows and mouth leading" },
+      { role:"once", dur:4, framing:"ecu", angle:"eye", lens:"135", dof:"razor", motion:["dolly-in"], speed:"veryslow",
+        light:"soft-key", temp:"neutral", transIn:"match",
+        scene:"an extreme close-up on the eyes alone",
+        action:"a slow blink, then the gaze tracks fractionally to follow something off-frame" }] },
+
+  /* ---- product & design ---- */
+  { id:"turntable", group:"Product", name:"Product turntable", pv:["motion","turntable"],
+    sum:"A clean 360° orbit on a studio sweep for every object you upload.",
+    style:"product", cadence:"24", atmos:["grain"], endWith:"cut",
+    recipe:[
+      { role:"per", cat:"product", dur:8, framing:"hero", angle:"tq", lens:"50", dof:"moderate",
+        motion:["turntable"], speed:"slow", light:"three-point", temp:"neutral", transIn:"fade-black",
+        scene:"{this} centred on a seamless studio sweep with even margins",
+        action:"the object rotates a full turn on a level axis, highlights travelling across each face" }] },
+
+  { id:"hero", group:"Product", name:"Hero reveal", pv:["light","rim"],
+    sum:"Low, dark and slow — a push along the object's long axis with a hard rim light.",
+    style:"product", cadence:"24", atmos:["grain","flare"], endWith:"fade-black",
+    recipe:[
+      { role:"per", cat:"product", dur:6, framing:"full", angle:"low", lens:"35", dof:"shallow",
+        motion:["hero-push"], speed:"slow", light:"rim", temp:"cool", transIn:"fade-black",
+        scene:"{this} resting on a dark reflective surface, lit only by a hard rim that separates it from the void behind",
+        action:"the camera pushes in along the long axis as a specular line travels the top edge" }] },
+
+  { id:"macro", group:"Product", name:"Macro detail pass", pv:["motion","detail-pass"],
+    sum:"A tight, very slow travel across the surface of each object.",
+    style:"product", cadence:"60", atmos:["bokeh"], endWith:"cut",
+    recipe:[
+      { role:"per", cat:"product", dur:5, framing:"macro", angle:"tq", lens:"macro", dof:"razor",
+        motion:["detail-pass"], speed:"veryslow", light:"soft-key", temp:"neutral", transIn:"cut",
+        scene:"a macro framing on the seam where two materials meet on {this}",
+        action:"the plane of focus travels along the seam, grain and knurling resolving as it passes" }] },
+
+  { id:"spot", group:"Product", name:"Three-shot product spot", pv:["light","high-key"],
+    sum:"Establish, detail, hero — a full spot, with the establish repeated per object.",
+    style:"product", cadence:"24", atmos:["grain"], endWith:"fade-black",
+    recipe:[
+      { role:"per", cat:"product", dur:5, framing:"ws", angle:"tq", lens:"35", dof:"deep",
+        motion:["dolly-in"], speed:"slow", light:"high-key", temp:"neutral", transIn:"fade-black",
+        scene:"{this} alone on a bright seamless white sweep",
+        action:"the camera eases in as the object sits perfectly still" },
+      { role:"once", dur:4, framing:"macro", angle:"tq", lens:"macro", dof:"razor", motion:["detail-pass"], speed:"veryslow",
+        light:"soft-key", temp:"neutral", transIn:"match",
+        scene:"a macro pass across the control surface and its machined detailing",
+        action:"the focus plane travels the length of the detail, catching each edge in turn" },
+      { role:"once", dur:6, framing:"hero", angle:"low", lens:"50", dof:"shallow", motion:["hero-push"], speed:"slow",
+        light:"rim", temp:"cool", transIn:"dissolve",
+        scene:"the same object re-lit dark and low for a hero three-quarter",
+        action:"the camera pushes to a hero framing as the rim light resolves the silhouette" }] },
+
+
+  /* ---- game marketing ---- */
+  { id:"roster", group:"Game marketing", name:"Roster line-up", pv:["light","high-key"],
+    sum:"A held beauty pose for each character, cut like a select screen.",
+    style:"render", cadence:"24", atmos:["grain"], endWith:"hold",
+    recipe:[
+      { role:"per", cat:"character", dur:3, framing:"ws", angle:"eye", lens:"85", dof:"shallow",
+        motion:["dolly-in"], speed:"slow", light:"high-key", temp:"neutral", transIn:"whip",
+        scene:"{this} in a held beauty pose, centred on a clean graphic backdrop",
+        action:"they settle into the pose as the camera eases in a fraction" }] },
+  { id:"logo-sting", group:"Game marketing", name:"Logo sting", pv:["light","low-key"],
+    sum:"Darkness, a hard light hit, then the mark holds. Built to sit at the end of a trailer.",
+    style:"cinematic", cadence:"24", atmos:["flare","dust"], endWith:"hold",
+    recipe:[
+      { role:"once", dur:3, framing:"full", angle:"eye", lens:"50", dof:"shallow", motion:["dolly-in"], speed:"veryslow",
+        light:"low-key", temp:"cool", transIn:"fade-black",
+        scene:"near-total darkness with {style|a metal emblem} barely catching an edge of light",
+        action:"the mark drifts almost imperceptibly closer as embers cross the frame" },
+      { role:"once", dur:4, framing:"full", angle:"eye", lens:"50", dof:"moderate", motion:["locked"], speed:"slow",
+        light:"rim", temp:"cool", transIn:"bloom",
+        scene:"the mark fully lit and locked dead centre, held steady",
+        action:"a hard specular sweep crosses the surface once and settles" }] },
+  { id:"gameplay-montage", group:"Game marketing", name:"Gameplay montage", pv:["motion","whip"],
+    sum:"Fast cuts between environments and characters — a trailer's middle section.",
+    style:"cinematic", cadence:"60", atmos:["grain","flare"], endWith:"fade-white",
+    recipe:[
+      { role:"per", cat:"environment", dur:3, framing:"ws", angle:"low", lens:"24", dof:"deep",
+        motion:["whip"], speed:"fast", light:"noon", temp:"warm", transIn:"whip",
+        scene:"a fast pass through {this}",
+        action:"the camera whips across the space, foreground elements streaking past" },
+      { role:"per", cat:"character", dur:2, framing:"mcu", angle:"eye", lens:"85", dof:"shallow",
+        motion:["dolly-in"], speed:"fast", light:"rim", temp:"cool", transIn:"cut",
+        scene:"a hard cut to {this} mid-action",
+        action:"they turn sharply toward camera as the cut lands" }] },
+
+  /* ---- architecture ---- */
+  { id:"arch-approach", group:"Architecture", name:"Exterior approach", pv:["light","golden"],
+    sum:"Walk the building up — wide establishing, then a low approach to the entrance.",
+    style:"product", cadence:"24", atmos:["haze","flare"], endWith:"hold",
+    recipe:[
+      { role:"per", cat:"environment", dur:6, framing:"ews", angle:"low", lens:"24", dof:"deep",
+        motion:["dolly-in"], speed:"veryslow", light:"golden", temp:"warm", transIn:"fade-black",
+        scene:"{this} seen wide from across open ground, full massing readable against the sky",
+        action:"the camera advances steadily as the facade fills more of the frame" },
+      { role:"once", dur:5, framing:"ms", angle:"low", lens:"35", dof:"deep", motion:["ped-up"], speed:"slow",
+        light:"golden", temp:"warm", transIn:"dissolve",
+        scene:"a low framing at the entrance threshold, materials and joinery close enough to read",
+        action:"the camera rises to follow the vertical line of the facade" }] },
+  { id:"arch-interior", group:"Architecture", name:"Interior reveal", pv:["light","window"],
+    sum:"Open on a detail, then pull back to give the whole room.",
+    style:"product", cadence:"24", atmos:["dust","bokeh"], endWith:"hold",
+    recipe:[
+      { role:"once", dur:5, framing:"cu", angle:"eye", lens:"85", dof:"shallow", motion:["rack"], speed:"slow",
+        light:"window", temp:"warm", transIn:"fade-black",
+        scene:"a close detail of a material junction — timber meeting plaster, light raking across it",
+        action:"focus racks from the foreground detail to the depth of the room beyond" },
+      { role:"per", cat:"environment", dur:6, framing:"ws", angle:"eye", lens:"24", dof:"deep",
+        motion:["dolly-out"], speed:"slow", light:"window", temp:"warm", transIn:"dissolve",
+        scene:"{this} opened up wide, daylight falling deep into the plan",
+        action:"the camera withdraws smoothly to hand over the full volume of the space" }] },
+  { id:"arch-detail", group:"Architecture", name:"Material tour", pv:["motion","detail-pass"],
+    sum:"Slow macro passes across each surface and finish.",
+    style:"product", cadence:"60", atmos:["bokeh"], endWith:"cut",
+    recipe:[
+      { role:"per", cat:"product", dur:5, framing:"macro", angle:"tq", lens:"macro", dof:"razor",
+        motion:["detail-pass"], speed:"veryslow", light:"soft-key", temp:"neutral", transIn:"dissolve",
+        scene:"a macro pass across {this}, grain and tooling marks filling the frame",
+        action:"the plane of focus travels the surface, catching each ridge as it passes" }] },
+
+  /* ---- fashion ---- */
+  { id:"look-walk", group:"Fashion", name:"Look walk", pv:["light","high-key"],
+    sum:"A full-length walk toward camera for every look you upload.",
+    style:"editorial", cadence:"24", atmos:["grain"], endWith:"cut",
+    recipe:[
+      { role:"per", cat:"character", dur:5, framing:"ws", angle:"eye", lens:"85", dof:"shallow",
+        motion:["dolly-out"], speed:"steady", light:"high-key", temp:"neutral", transIn:"cut",
+        scene:"{this} walking directly toward camera down a bare seamless runway",
+        action:"the garment moves with each stride, hem and sleeves catching air" }] },
+  { id:"fabric-macro", group:"Fashion", name:"Fabric macro", pv:["motion","detail-pass"],
+    sum:"Weave, stitch and drape at macro range.",
+    style:"editorial", cadence:"60", atmos:["bokeh"], endWith:"cut",
+    recipe:[
+      { role:"per", cat:"product", dur:4, framing:"macro", angle:"tq", lens:"macro", dof:"razor",
+        motion:["detail-pass"], speed:"veryslow", light:"soft-key", temp:"warm", transIn:"dissolve",
+        scene:"an extreme macro on {this}, individual fibres and stitch lines resolving",
+        action:"the fabric shifts a fraction as the focus travels along the weave" }] },
+  { id:"editorial-turn", group:"Fashion", name:"Editorial turn", pv:["light","gradient"],
+    sum:"A held pose, a quarter turn, a look back to lens.",
+    style:"editorial", cadence:"24", atmos:["grain","flare"], endWith:"hold",
+    recipe:[
+      { role:"per", cat:"character", dur:6, framing:"ms", angle:"eye", lens:"85", dof:"shallow",
+        motion:["arc-r"], speed:"slow", light:"gradient", temp:"cool", transIn:"dissolve",
+        scene:"{this} against a graduated studio backdrop, three-quarter to camera",
+        action:"they turn a quarter into the light and hold, then glance back to lens" }] },
+
+  /* ---- automotive ---- */
+  { id:"rolling-shot", group:"Automotive", name:"Rolling shot", pv:["light","golden"],
+    sum:"Tracked at speed, then a hero settle at rest.",
+    style:"product", cadence:"24", atmos:["haze","flare"], endWith:"hold",
+    recipe:[
+      { role:"per", cat:"product", dur:5, framing:"ws", angle:"table", lens:"35", dof:"shallow",
+        motion:["truck-r"], speed:"fast", light:"golden", temp:"warm", transIn:"whip",
+        scene:"{this} tracked side-on at speed along an empty coast road",
+        action:"the wheels blur while the body stays locked in frame, sun strobing along the flank" },
+      { role:"once", dur:6, framing:"hero", angle:"low", lens:"50", dof:"shallow", motion:["arc-l"], speed:"slow",
+        light:"rim", temp:"cool", transIn:"dissolve",
+        scene:"the car at rest in a dark studio, one hard rim defining the shoulder line",
+        action:"the camera arcs slowly to settle on the front three-quarter" }] },
+  { id:"auto-interior", group:"Automotive", name:"Interior pan", pv:["light","window"],
+    sum:"Materials and switchgear from the driver's seat.",
+    style:"product", cadence:"24", atmos:["bokeh"], endWith:"cut",
+    recipe:[
+      { role:"once", dur:6, framing:"mws", angle:"eye", lens:"24", dof:"deep", motion:["pan-r"], speed:"slow",
+        light:"window", temp:"neutral", transIn:"fade-black",
+        scene:"the cabin from the driver's position, {product|stitched leather and machined switchgear} filling frame",
+        action:"the camera pans right across the dash, daylight moving over each surface" },
+      { role:"once", dur:5, framing:"macro", angle:"tq", lens:"macro", dof:"razor", motion:["detail-pass"], speed:"veryslow",
+        light:"soft-key", temp:"warm", transIn:"match",
+        scene:"a macro pass along a single stitch line where leather meets metal",
+        action:"focus travels the seam, thread texture resolving as it goes" }] },
+
+  /* ---- food ---- */
+  { id:"pour-hero", group:"Food", name:"Pour hero", pv:["light","rim"],
+    sum:"The pour, held in close-up and slowed right down.",
+    style:"product", cadence:"slowmo", atmos:["wet","bokeh"], endWith:"hold",
+    recipe:[
+      { role:"per", cat:"product", dur:6, framing:"cu", angle:"table", lens:"85", dof:"razor",
+        motion:["locked"], speed:"veryslow", light:"rim", temp:"warm", transIn:"fade-black",
+        scene:"{this} centred in close-up against a dark backdrop, backlit so the liquid glows",
+        action:"a stream pours in and breaks into slow droplets that arc through the light" },
+      { role:"once", dur:5, framing:"macro", angle:"table", lens:"macro", dof:"razor", motion:["dolly-in"], speed:"veryslow",
+        light:"soft-key", temp:"warm", transIn:"match",
+        scene:"a macro on the surface as it settles, condensation beading on the glass",
+        action:"bubbles rise and the surface stills as the camera creeps closer" }] },
+  { id:"ingredient-macro", group:"Food", name:"Ingredient macro", pv:["motion","detail-pass"],
+    sum:"Texture pass across each ingredient, very slow and very close.",
+    style:"product", cadence:"60", atmos:["bokeh","dust"], endWith:"cut",
+    recipe:[
+      { role:"per", cat:"product", dur:4, framing:"macro", angle:"top", lens:"macro", dof:"razor",
+        motion:["detail-pass"], speed:"veryslow", light:"soft-key", temp:"warm", transIn:"dissolve",
+        scene:"an overhead macro travelling across {this}",
+        action:"the focus plane drifts over the surface, crumb and grain resolving as it passes" }] },
+
+  /* ---- abstract ---- */
+  { id:"abstract-loop", group:"Abstract", name:"Seamless loop", pv:["motion","turntable"],
+    sum:"A single continuous move engineered to loop with no visible cut.",
+    style:"render", cadence:"60", atmos:["grain"], endWith:"hold",
+    recipe:[
+      { role:"per", cat:"product", dur:8, framing:"full", angle:"tq", lens:"50", dof:"moderate",
+        motion:["turntable"], speed:"steady", light:"gradient", temp:"cool", transIn:"cut",
+        scene:"{this} isolated on a graduated field, centred and evenly margined",
+        action:"one full continuous rotation ending in exactly the opening pose so the clip loops with no cut" }] },
+  { id:"kinetic-reveal", group:"Abstract", name:"Kinetic reveal", pv:["light","neon"],
+    sum:"Parts drift apart, hold as an exploded view, then reassemble.",
+    style:"render", cadence:"60", atmos:["flare","dust"], endWith:"hold",
+    recipe:[
+      { role:"per", cat:"product", dur:7, framing:"full", angle:"tq", lens:"50", dof:"moderate",
+        motion:["exploded"], speed:"slow", light:"neon", temp:"mixed", transIn:"fade-black",
+        scene:"{this} floating in a dark void, components separating along their assembly axes",
+        action:"the parts drift outward and hold as an exploded view, then draw back together" }] },
+
+  { id:"blank", group:"Blank", name:"Start from scratch", pv:null,
+    sum:"One empty shot. Write everything yourself.",
+    style:null, cadence:null, atmos:[], endWith:null,
+    recipe:[{ role:"once", dur:5 }] },
+];
+
+/** Scale beat duration hints so the expanded list fits the runtime cap. */
+function fitDurations(hints) {
+  let d = hints.map(h => Math.max(MIN_SHOT, Math.round(h || MIN_SHOT)));
+  // With a 1s floor the cap also caps the shot count.
+  d = d.slice(0, Math.min(MAX_SHOTS, MAX_TOTAL));
+  let total = d.reduce((a, b) => a + b, 0);
+  if (total > MAX_TOTAL) {
+    const k = MAX_TOTAL / total;
+    d = d.map(x => Math.max(MIN_SHOT, Math.round(x * k)));
+    total = d.reduce((a, b) => a + b, 0);
+    let guard = 200;
+    while (total > MAX_TOTAL && guard--) {
+      let bi = 0;
+      d.forEach((x, i) => { if (x > d[bi]) bi = i; });
+      if (d[bi] <= MIN_SHOT) break;
+      d[bi]--; total--;
+    }
+  }
+  return d;
+}
+
+/** Expand a recipe against the current references into concrete shots. */
+function expandPreset(p) {
+  const beats = [];
+  for (const b of p.recipe) {
+    if (b.role !== "per") { beats.push({ beat:b, ref:null }); continue; }
+    const matches = state.refs.filter(r => r.cat === b.cat);
+    // With nothing uploaded a `per` beat still fires once, on its fallbacks.
+    if (!matches.length) beats.push({ beat:b, ref:null });
+    else for (const r of matches) beats.push({ beat:b, ref:r });
+  }
+  const durs = fitDurations(beats.map(x => x.beat.dur));
+  const shots = beats.slice(0, durs.length).map(({ beat, ref }, i) =>
+    Object.assign(newShot(durs[i]), beat, {
+      // After the spread, or the beat's hint would overwrite the fitted value.
+      dur: durs[i],
+      motion: beat.motion ? [...beat.motion] : [],
+      scene: fillRefs(beat.scene, ref),
+      action: fillRefs(beat.action, ref),
+      transOut: null,
+    }));
+  for (const s of shots) { delete s.role; delete s.cat; }
+  if (shots.length) shots[shots.length - 1].transOut = p.endWith || null;
+  return shots;
+}
+
+/* ===========================================================================
+ * 2. Wizard steps
+ * ======================================================================== */
+
+const SHOT_FIELDS = ["scene","action","framing","angle","lens","dof","motion","speed","light","temp","transIn","transOut"];
+
+/* Four steps. References come first so a preset can write its shot text around
+ * whatever was uploaded, and every per-shot control lives on one page behind
+ * progressive disclosure rather than a page each. */
+const STEPS = [
+  { id:"refs", name:"References", q:"What are you working with?",
+    sub:"Drop in the images you'll feed the model, and say what each one is for. The next step writes them into the prompt for you. Skip it if you're working from text alone." },
+  { id:"preset", name:"Preset", q:"Pick a starting point",
+    sub:"Every preset arrives fully written — shot list, camera, lighting, timing and the scene description for each beat, with your references woven in." },
+  { id:"shots", name:"Shots", q:"Your shot list",
+    sub:"Click a shot to edit it. The prompt at the bottom updates as you go." },
+];
+
+/** Per-shot fields shown as settings chips, in the order they read. */
+const SHOT_SETTINGS = ["framing","angle","lens","dof","motion","speed","light","temp","transIn","transOut"];
+
+/** Display order for the preset groups, independent of definition order. */
+const GROUP_ORDER = ["Game cinematic","Game animation","Game marketing","Product",
+  "Architecture","Automotive","Fashion","Food","Abstract","Blank"];
+const LOOK_SETTINGS = ["style","cadence","atmos"];
+
+/* ===========================================================================
+ * 3. Preview scenes — every card renders the same staged subject, restaged.
+ * ======================================================================== */
+
+const N = n => (Math.round(n * 100) / 100).toString();
+const FRONT = "#5c5c66", TOP = "#7b7b86", SIDE = "#3e3e47";
+
+/**
+ * Product-proxy block. `top` is signed: positive shows the top face (camera
+ * above), negative shows the underside (camera below). `side` is the yaw.
+ */
+function box(o) {
+  const cx = o.cx ?? 50, cy = o.cy ?? 56, s = o.s ?? 32;
+  const top = o.top ?? .38, side = o.side ?? .45;
+  const front = o.front ?? FRONT, tp = o.top_ ?? TOP, sd = o.side_ ?? SIDE;
+  const st = o.stroke ? ` stroke="${o.stroke}" stroke-width="${o.sw || 1.2}"` : "";
+  const x0 = cx - s / 2, y0 = cy - s / 2;
+  const dx = s * .38 * side, dy = s * .38 * top;
+  let out = "";
+  if (Math.abs(dy) > .4)
+    out += `<path d="M${N(x0)} ${N(top > 0 ? y0 : y0 + s)}L${N(x0 + dx)} ${N((top > 0 ? y0 : y0 + s) - dy)}L${N(x0 + s + dx)} ${N((top > 0 ? y0 : y0 + s) - dy)}L${N(x0 + s)} ${N(top > 0 ? y0 : y0 + s)}Z" fill="${tp}"${st}/>`;
+  if (Math.abs(dx) > .4)
+    out += `<path d="M${N(x0 + s)} ${N(y0)}L${N(x0 + s + dx)} ${N(y0 - dy)}L${N(x0 + s + dx)} ${N(y0 + s - dy)}L${N(x0 + s)} ${N(y0 + s)}Z" fill="${sd}"${st}/>`;
+  out += `<rect x="${N(x0)}" y="${N(y0)}" width="${N(s)}" height="${N(s)}" rx="${N(Math.min(2, s / 14))}" fill="${front}"${st}/>`;
+  // Large faces read as blank fill without a seam and specular band to catch.
+  if (o.detail) out +=
+    `<path d="M${N(x0)} ${N(y0 + s * .62)}h${N(s)}" stroke="#000" stroke-width="${N(s * .012)}" opacity=".35"/>` +
+    `<rect x="${N(x0 + s * .12)}" y="${N(y0)}" width="${N(s * .07)}" height="${N(s)}" fill="#fff" opacity=".1"/>` +
+    `<circle cx="${N(x0 + s * .78)}" cy="${N(y0 + s * .34)}" r="${N(s * .055)}" fill="#000" opacity=".3"/>`;
+  return out;
+}
+
+/**
+ * Human figure. Cinematic shot sizes are defined by how much of a body is in
+ * frame, so the wide→close-up ladder only reads against a person, never a box.
+ * `top` is the crown of the head, `h` the full standing height — both may sit
+ * outside the frame for tighter sizes.
+ */
+function figure(o = {}) {
+  const cx = o.cx ?? 50, top = o.top ?? 18, h = o.h ?? 60;
+  const c = o.fill ?? "#74747f", c2 = o.shade ?? "#50505a";
+  const u = h / 7.5;                       // one head-height unit
+  const hr = u * .46, sh = top + u * 1.15, hip = top + u * 3.95, foot = top + h;
+  const sw = u * .95, hw = u * .6;
+  return (
+    `<path d="M${N(cx - hw)} ${N(hip)}L${N(cx - hw * .95)} ${N(foot)}L${N(cx - hw * .15)} ${N(foot)}L${N(cx - u * .08)} ${N(hip)}Z" fill="${c2}"/>` +
+    `<path d="M${N(cx + hw)} ${N(hip)}L${N(cx + hw * .95)} ${N(foot)}L${N(cx + hw * .15)} ${N(foot)}L${N(cx + u * .08)} ${N(hip)}Z" fill="${c}"/>` +
+    `<path d="M${N(cx - sw)} ${N(sh)}Q${N(cx)} ${N(sh - u * .3)} ${N(cx + sw)} ${N(sh)}L${N(cx + hw)} ${N(hip + u * .2)}L${N(cx - hw)} ${N(hip + u * .2)}Z" fill="${c}"/>` +
+    `<path d="M${N(cx - sw)} ${N(sh)}L${N(cx - sw - u * .3)} ${N(sh + u * .35)}L${N(cx - sw - u * .05)} ${N(hip + u * .1)}L${N(cx - sw + u * .32)} ${N(hip)}Z" fill="${c2}"/>` +
+    `<path d="M${N(cx + sw)} ${N(sh)}L${N(cx + sw + u * .3)} ${N(sh + u * .35)}L${N(cx + sw + u * .05)} ${N(hip + u * .1)}L${N(cx + sw - u * .32)} ${N(hip)}Z" fill="${c2}"/>` +
+    `<rect x="${N(cx - u * .16)}" y="${N(sh - u * .55)}" width="${N(u * .32)}" height="${N(u * .7)}" fill="${c2}"/>` +
+    `<ellipse cx="${N(cx)}" cy="${N(top + hr)}" rx="${N(hr * .84)}" ry="${N(hr)}" fill="${c}"/>` +
+    // Once the head is large enough to hold them, features make a close-up
+    // read as a person rather than an oval.
+    (hr < 11 ? "" :
+      `<ellipse cx="${N(cx - hr * .32)}" cy="${N(top + hr * .92)}" rx="${N(hr * .11)}" ry="${N(hr * .14)}" fill="#26262c"/>` +
+      `<ellipse cx="${N(cx + hr * .32)}" cy="${N(top + hr * .92)}" rx="${N(hr * .11)}" ry="${N(hr * .14)}" fill="#26262c"/>` +
+      `<path d="M${N(cx - hr * .26)} ${N(top + hr * 1.42)}q${N(hr * .26)} ${N(hr * .2)} ${N(hr * .52)} 0" ` +
+      `stroke="${c2}" stroke-width="${N(hr * .1)}" fill="none" stroke-linecap="round"/>`)
+  );
+}
+
+/** Face filling the frame — what an extreme close-up actually means. */
+const face = () =>
+  `<ellipse cx="50" cy="60" rx="42" ry="52" fill="#74747f"/>` +
+  `<ellipse cx="34" cy="50" rx="6.5" ry="4.2" fill="#26262c"/>` +
+  `<ellipse cx="66" cy="50" rx="6.5" ry="4.2" fill="#26262c"/>` +
+  `<path d="M25 40q9-5 18-1M75 40q-9-5-18-1" stroke="#50505a" stroke-width="3" fill="none" stroke-linecap="round"/>` +
+  `<path d="M50 56v12q0 3 4 3" stroke="#50505a" stroke-width="2.6" fill="none" stroke-linecap="round"/>` +
+  `<path d="M39 84q11 7 22 0" stroke="#50505a" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+
+// Backdrops overhang the 100×100 frame so translating camera moves never slide
+// bare canvas into view; the frame's overflow:hidden crops the excess.
+const OV = -40, OW = 180;
+const bg = (id = "bgN") => `<rect x="${OV}" y="${OV}" width="${OW}" height="${OW}" fill="url(#${id})"/>`;
+const ground = (y = 72, c = "#111114") => `<rect x="${OV}" y="${y}" width="${OW}" height="${N(140 - y)}" fill="${c}"/><rect x="${OV}" y="${N(y - .6)}" width="${OW}" height=".6" fill="#4c4c56" opacity=".8"/>`;
+const shadow = (cx = 50, cy = 73, rx = 22, ry = 4, op = .45) => `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#000" opacity="${op}"/>`;
+const glow = (cx, cy, r, id = "gW", op = 1) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#${id})" opacity="${op}"/>`;
+
+/** Standard staged scene used as the backdrop for most previews. */
+function stage(o = {}) {
+  return bg(o.bgId) + ground(o.gy ?? 72, o.gc) + shadow(o.sx, o.sy, o.srx, o.sry, o.sop) + box(o.box || {});
+}
+/** Wrap markup in an animated group. `a` is a keyframe name; `extra` appends
+ *  declarations to the SAME style attribute — a second one would be dropped. */
+function anim(inner, a, dur, dir, ease, extra) {
+  const v = [`--a:${a}`];
+  if (dur) v.push(`--ad:${dur}`);
+  if (dir) v.push(`--adir:${dir}`);
+  if (ease) v.push(`--ae:${ease}`);
+  if (extra) v.push(extra);
+  return `<g class="anim" style="${v.join(";")}">${inner}</g>`;
+}
+const svg = inner => `<svg class="pv" viewBox="0 0 100 100" aria-hidden="true">${inner}</svg>`;
+
+const P = {};
+
+P.framing = id => {
+  // Each entry places the figure so the frame cuts the body where the shot
+  // size says it should — knees for a medium wide, chest for a medium close-up.
+  const M = {
+    ews:{ t:56, h:20, gy:76 }, ws:{ t:16, h:60, gy:78 }, mws:{ t:11, h:114, gy:0 },
+    ms:{ t:8, h:178, gy:0 }, mcu:{ t:6, h:262, gy:0 }, cu:{ t:7, h:410, gy:0 },
+  };
+  if (M[id]) {
+    const m = M[id];
+    return svg(bg() + glow(50, 34, 52, "gW", .16) + (m.gy ? ground(m.gy) : "") +
+      (m.gy ? shadow(50, m.gy + 1, m.h * .3, m.h * .05, .4) : "") +
+      figure({ top:m.t, h:m.h }));
+  }
+  if (id === "ecu") return svg(bg() + glow(50, 40, 54, "gW", .18) + face());
+  if (id === "hero") return svg(bg() + ground(74) + shadow(48, 75, 26, 4.5) + box({ cx:48, cy:56, s:40, top:.42, side:.6 }));
+  if (id === "full") return svg(bg() + ground(76) + shadow(50, 77, 24, 4) + box({ cy:58, s:38, top:.3, side:.35 }) +
+    `<rect x="10" y="10" width="80" height="80" fill="none" stroke="#6a6a76" stroke-width=".8" stroke-dasharray="3 3" opacity=".7"/>`);
+  if (id === "detail") return svg(bg() + box({ cx:38, cy:60, s:86, top:.22, side:.3, detail:true }) +
+    `<path d="M6 22V10a4 4 0 0 1 4-4h12M78 6h12a4 4 0 0 1 4 4v12M94 78v12a4 4 0 0 1-4 4H78M22 94H10a4 4 0 0 1-4-4V78" fill="none" stroke="#e6e6ea" stroke-width="2" stroke-linecap="round" opacity=".9"/>`);
+  return svg(bg() + box({ cx:30, cy:66, s:150, top:.12, side:.18, detail:true }) +
+    `<circle cx="58" cy="42" r="17" fill="none" stroke="#e6e6ea" stroke-width="1.6" opacity=".85"/><path d="M70 54l14 14" stroke="#e6e6ea" stroke-width="2.4" stroke-linecap="round" opacity=".85"/>`);
+};
+
+P.angle = id => {
+  const cam = (x, y, r) => `<g transform="translate(${x} ${y}) rotate(${r})"><rect x="-7" y="-4.6" width="14" height="9.2" rx="1.6" fill="#e6e6ea"/><path d="M7 -2.6 13 -5.4v10.8L7 2.6Z" fill="#e6e6ea"/></g>`;
+  const M = {
+    eye:{box:{cy:56,s:34,top:.04,side:.45},gy:73,cam:[13,56,0]},
+    low:{box:{cy:52,s:34,top:-.5,side:.42},gy:82,cam:[13,80,-26]},
+    high:{box:{cy:58,s:34,top:.72,side:.42},gy:64,cam:[13,24,30]},
+    dutch:{box:{cy:56,s:34,top:.1,side:.45},gy:73,rot:-13,cam:[13,56,-13]},
+    tq:{box:{cy:56,s:34,top:.22,side:.62},gy:74,cam:[12,62,12]},
+    profile:{box:{cy:56,s:34,top:.08,side:.03},gy:74,cam:[13,56,0]},
+    elev45:{box:{cy:57,s:34,top:.62,side:.58},gy:70,cam:[13,28,34]},
+    table:{box:{cy:54,s:34,top:-.06,side:.4},gy:70,cam:[13,66,-4]},
+  };
+  if (id === "top") return svg(bg() + ground(88) +
+    `<g transform="translate(50 54) rotate(-18)"><rect x="-21" y="-21" width="42" height="42" rx="2.5" fill="${TOP}"/><rect x="-21" y="19" width="42" height="7" fill="${FRONT}"/></g>` +
+    shadow(50, 82, 25, 4) + cam(50, 12, 90));
+  if (id === "worm") return svg(bg() + ground(94) + box({ cy:44, s:38, top:-.95, side:.35 }) + cam(50, 90, -90));
+  const m = M[id];
+  const inner = bg() + ground(m.gy) + shadow(50, m.gy + 1.5, 22, 4) + box(m.box);
+  return svg((m.rot ? `<g transform="rotate(${m.rot} 50 50)">${inner}</g>` : inner) + cam(...m.cam));
+};
+
+P.lens = id => {
+  /** Converging floor lines — spread encodes how wide the field of view is. */
+  const persp = (spread, vy) => {
+    let d = "";
+    for (let i = -2; i <= 2; i++) d += `<path d="M${N(50 + i * spread / 2)} 100L${N(50 + i * spread / 14)} ${vy}" stroke="#585862" stroke-width=".8" opacity=".75"/>`;
+    return d;
+  };
+  const M = { 14:[86,.85,26], 24:[66,.66,29], 35:[50,.5,31], 50:[36,.38,33], 85:[24,.25,35], 135:[14,.14,37] };
+  if (M[id]) {
+    const [sp, sd, s] = M[id];
+    return svg(bg() + ground(70) + persp(sp, 70) + shadow(50, 71, s * .68, 3.6) + box({ cy:56, s, top:.3, side:sd }));
+  }
+  if (id === "macro") return svg(bg() + box({ cx:44, cy:62, s:130, top:.1, side:.14, detail:true }) +
+    `<circle cx="52" cy="44" r="21" fill="none" stroke="#ffffff" stroke-width="1.2" opacity=".55"/><circle cx="52" cy="44" r="4" fill="none" stroke="#fff" stroke-width="1" opacity=".8"/>`);
+  if (id === "anamorphic") return svg(bg("bgCool") + ground(72) + shadow(50, 73, 24, 4) + box({ cy:56, s:34, top:.3, side:.42 }) +
+    `<ellipse cx="50" cy="44" rx="48" ry="1.6" fill="#7fb6ff" opacity=".75"/><ellipse cx="50" cy="44" rx="20" ry="4.5" fill="#a9d0ff" opacity=".35"/>` +
+    `<ellipse cx="26" cy="30" rx="7" ry="4" fill="#a9d0ff" opacity=".25"/><ellipse cx="74" cy="60" rx="5" ry="3" fill="#a9d0ff" opacity=".22"/>`);
+  return svg(bg() + ground(74) +
+    `<g transform="skewY(-9)"><rect x="0" y="74" width="100" height="34" fill="#111114"/></g>` +
+    shadow(50, 72, 22, 4) + `<g filter="url(#fb2)">${box({ cx:22, cy:60, s:22, top:.3, side:.4 })}</g>` +
+    box({ cx:52, cy:56, s:32, top:.3, side:.42 }) +
+    `<g filter="url(#fb2)">${box({ cx:84, cy:52, s:18, top:.3, side:.4 })}</g>`);
+};
+
+P.dof = id => {
+  const B = { deep:0, moderate:1, shallow:2, razor:3 }[id];
+  const far = ["", "fb1", "fb2", "fb4"][B], mid = ["", "", "fb1", "fb2"][B];
+  const w = t => t ? `filter="url(#${t})"` : "";
+  return svg(bg() + ground(76) +
+    `<g ${w(far)}>${box({ cx:80, cy:50, s:19, front:"#4a4a53", top_:"#63636d", side_:"#34343b" })}</g>` +
+    `<g ${w(mid)}>${box({ cx:64, cy:56, s:25, front:"#525259", top_:"#6d6d77", side_:"#3a3a41" })}</g>` +
+    shadow(38, 74, 20, 4) + box({ cx:38, cy:60, s:34, top:.3, side:.44 }));
+};
+
+P.motion = id => {
+  const S = stage();
+  const A = (k, d, dir) => svg(anim(S, k, d, dir));
+  // A turntable base distinguishes the orbit cards from a locked-off shot
+  // while their rotation sits paused.
+  const TT = bg() + ground(72) + `<ellipse cx="50" cy="73" rx="30" ry="6.5" fill="#26262c"/><ellipse cx="50" cy="73" rx="30" ry="6.5" fill="none" stroke="#5a5a66" stroke-width="1"/>` + shadow(50, 73, 21, 4, .5) + box({});
+  const M = {
+    "dolly-in":["zin","2.6s"], "dolly-out":["zout","2.6s"], "truck-l":["txL","2.6s"], "truck-r":["txR","2.6s"],
+    "ped-up":["tyU","2.6s"], "ped-down":["tyD","2.6s"], "pan-l":["panL","2.8s"], "pan-r":["panR","2.8s"],
+    "tilt-up":["tiltU","2.8s"], "tilt-down":["tiltD","2.8s"], "crane":["craneU","3s"],
+    "arc-l":["orbL","3s"], "arc-r":["orbR","3s"], "handheld":["hand","3.4s","normal"],
+    "steadicam":["steady","3s"], "hero-push":["heroP","3s"], "descend":["descend","3s"],
+  };
+  if (id === "turntable") return svg(anim(TT, "spin", "5s", "normal"));
+  if (id === "orbit-reveal") return svg(anim(TT, "reveal", "4s"));
+  if (M[id]) return A(M[id][0], M[id][1], M[id][2]);
+  if (id === "locked") return svg(S + `<rect x="8" y="8" width="84" height="84" fill="none" stroke="#6a6a76" stroke-width="1" stroke-dasharray="4 3" opacity=".8"/>`);
+  if (id === "whip") return svg(anim(S, "whip", "1.9s", "normal", "cubic-bezier(.7,0,.3,1)") +
+    `<path d="M4 30h24M4 50h34M4 70h24" stroke="#8a8a96" stroke-width="1" opacity=".5"/>`);
+  if (id === "zoom-in" || id === "zoom-out")
+    return svg(bg() + ground(72) + anim(shadow(50, 73, 22, 4) + box({}), id === "zoom-in" ? "zin" : "zout", "2.6s"));
+  if (id === "rack") return svg(bg() + ground(76) +
+    `<g filter="url(#fb2)">${anim(box({ cx:74, cy:52, s:22, front:"#4d4d55", top_:"#66666f", side_:"#36363d" }), "sharpen", "2.4s")}</g>` +
+    anim(box({ cx:74, cy:52, s:22, front:"#4d4d55", top_:"#66666f", side_:"#36363d" }), "soften", "2.4s") +
+    shadow(36, 74, 20, 4) + anim(box({ cx:36, cy:60, s:32 }), "soften", "2.4s") +
+    `<g filter="url(#fb2)">${anim(box({ cx:36, cy:60, s:32 }), "sharpen", "2.4s")}</g>`);
+  if (id === "dolly-zoom") return svg(bg() + ground(72) +
+    anim(`<path d="M18 100 44 62M82 100 56 62M6 84h88" stroke="#585862" stroke-width="1" opacity=".8"/>`, "dzB", "3s") +
+    anim(shadow(50, 73, 22, 4) + box({}), "dzS", "3s"));
+  if (id === "detail-pass") return svg(bg() + anim(box({ cx:50, cy:58, s:96, top:.14, side:.2, detail:true }), "crawl", "3.2s") +
+    `<circle cx="50" cy="50" r="24" fill="none" stroke="#fff" stroke-width="1" opacity=".35"/>`);
+  if (id === "parallax") return svg(bg() +
+    anim(box({ cx:78, cy:44, s:20, front:"#43434b", top_:"#5a5a63", side_:"#2f2f35" }) + box({ cx:22, cy:44, s:16, front:"#43434b", top_:"#5a5a63", side_:"#2f2f35" }), "plxB", "3s") +
+    ground(74) + anim(shadow(50, 75, 22, 4) + box({ cy:58, s:32 }), "plxF", "3s"));
+  return svg(bg() + ground(78) +
+    anim(box({ cx:50, cy:34, s:20, top:.4, side:.45 }), "boom", "2.6s", null, null, "--ex:0px;--ey:-9px") +
+    anim(box({ cx:34, cy:56, s:20, top:.4, side:.45 }), "boom", "2.6s", null, null, "--ex:-11px;--ey:2px") +
+    anim(box({ cx:66, cy:56, s:20, top:.4, side:.45 }), "boom", "2.6s", null, null, "--ex:11px;--ey:2px"));
+};
+
+P.speed = id => {
+  const d = { veryslow:"5s", slow:"3.4s", steady:"2.1s", fast:"1.1s" }[id];
+  const bars = { veryslow:1, slow:2, steady:3, fast:4 }[id];
+  let m = "";
+  for (let i = 0; i < 4; i++)
+    m += `<rect x="${N(34 + i * 9)}" y="${N(88 - (i + 1) * 2.4)}" width="6" height="${N((i + 1) * 2.4)}" rx="1" fill="${i < bars ? "#e63920" : "#4a4a52"}"/>`;
+  return svg(anim(stage({ gy:70 }), "zin", d) + m);
+};
+
+P.light = id => {
+  const L = {
+    "soft-key":   () => bg() + ground(74) + glow(24, 20, 46, "gW", .5) + shadow(54, 75, 24, 4, .3) + box({ front:"#6e6e78", top_:"#93939d", side_:"#4a4a53" }),
+    "three-point":() => bg() + ground(74) + glow(18, 24, 34, "gWarm", .55) + glow(84, 26, 30, "gCool", .5) + glow(50, 14, 26, "gW", .35) + shadow(50, 75, 22, 4, .35) + box({ front:"#6a6a74", top_:"#96969f", side_:"#4f4f58" }),
+    "high-key":   () => bg("bgHigh") + `<rect y="70" width="100" height="30" fill="#e2e2e8"/>` + shadow(50, 74, 22, 3.5, .12) + box({ front:"#b9b9c2", top_:"#d6d6dd", side_:"#a2a2ac" }),
+    "low-key":    () => bg("bgLow") + ground(74, "#08080a") + glow(80, 22, 26, "gW", .45) + box({ front:"#3a3a42", top_:"#6e6e78", side_:"#202026" }),
+    "gradient":   () => `<rect x="${OV}" y="${OV}" width="${OW}" height="${OW}" fill="url(#bgFlat)"/>` + glow(50, 12, 58, "gW", .45) + ground(74, "#3a3d43") + shadow(50, 75, 22, 4, .3) + box({ front:"#5f5f69", top_:"#84848e", side_:"#43434b" }),
+    // Rim traces the box's actual silhouette: front-top-left, over the top
+    // face, then down the far edge of the side face.
+    "rim":        () => bg("bgLow") + ground(76, "#08080a") + box({ front:"#2c2c33", top_:"#3a3a42", side_:"#232329" }) +
+                        `<path d="M34 40 39.5 35.4 71.5 35.4 71.5 67.4" fill="none" stroke="#eaeaf2" stroke-width="2.2" stroke-linejoin="round" opacity=".95"/>` + glow(80, 46, 24, "gW", .4),
+    "toplight":   () => bg() + ground(74) + glow(50, 6, 40, "gW", .6) + `<rect x="30" y="4" width="40" height="4" rx="2" fill="#f2f2f6" opacity=".9"/>` + shadow(50, 75, 20, 3.5, .4) + box({ front:"#57575f", top_:"#a4a4ad", side_:"#3d3d44" }),
+    "ring":       () => bg() + ground(74) + `<circle cx="50" cy="50" r="34" fill="none" stroke="#f0f0f6" stroke-width="3" opacity=".55"/>` + glow(50, 50, 40, "gW", .3) + shadow(50, 75, 20, 3.5, .3) + box({ front:"#70707a", top_:"#8b8b95", side_:"#5a5a63" }),
+    "golden":     () => bg("bgGold") + `<circle cx="24" cy="56" r="11" fill="#ffe0a8" opacity=".95"/>` + glow(24, 56, 34, "gWarm", .8) + ground(70, "#2c1d12") + shadow(58, 71, 26, 4, .5) + box({ cx:56, front:"#8a6238", top_:"#c08b4d", side_:"#4e3620" }),
+    "overcast":   () => `<rect x="${OV}" y="${OV}" width="${OW}" height="${OW}" fill="#9ba0a8"/>` + ground(72, "#7c818a") + shadow(50, 73, 22, 3, .18) + box({ front:"#8b909a", top_:"#a2a7b1", side_:"#7a7f88" }),
+    "noon":       () => bg("bgCool") + `<circle cx="50" cy="12" r="8" fill="#fffbe8"/>` + glow(50, 12, 30, "gW", .7) + ground(72, "#2a3038") + `<path d="M38 72 46 88h14l-8-16Z" fill="#000" opacity=".55"/>` + box({ front:"#7d818a", top_:"#c9cdd4", side_:"#4e525a" }),
+    "window":     () => bg() + `<g opacity=".5"><path d="M0 18 34 4v40L0 56Z" fill="#dfe8f5"/><path d="M17 11v39M0 37l34-14" stroke="#2f3037" stroke-width="1.6"/></g>` + glow(18, 30, 40, "gW", .35) + ground(74) + shadow(56, 75, 24, 4, .35) + box({ cx:54, front:"#66666f", top_:"#8a8a94", side_:"#42424a" }),
+    "blue-hour":  () => bg("bgNight") + `<path d="M0 66h100" stroke="#4a6ea8" stroke-width=".8" opacity=".6"/>` + glow(50, 62, 44, "gCool", .35) + ground(72, "#0d1220") + shadow(50, 73, 22, 4, .5) + box({ front:"#3d4a63", top_:"#56678a", side_:"#2a3345" }),
+    "moon":       () => bg("bgNight") + `<circle cx="76" cy="18" r="8" fill="#dfe7f7"/><circle cx="72.5" cy="15.5" r="7" fill="#17233f"/>` + glow(76, 18, 26, "gCool", .5) + ground(74, "#0a0e1a") + shadow(46, 75, 22, 4, .55) + box({ cx:46, front:"#3c4557", top_:"#5b6579", side_:"#282e3b" }),
+    "neon":       () => bg("bgNeon") + glow(20, 34, 34, "gPink", .7) + glow(82, 46, 30, "gCool", .6) + ground(74, "#120a1c") + `<rect x="8" y="20" width="3" height="34" rx="1.5" fill="#ff5fa8"/><rect x="89" y="30" width="3" height="30" rx="1.5" fill="#6fd6ff"/>` + shadow(50, 75, 22, 4, .5) + box({ front:"#5a3a5e", top_:"#7d5a86", side_:"#3a2a4a" }),
+    "fire":       () => bg("bgLow") + glow(28, 62, 36, "gWarm", .8) + `<path d="M28 74c5-7 8-11 8-16 0-3-1-5-3-7 1 4-1 6-3 7 1-6-2-10-5-13 1 6-5 8-5 15a8 8 0 0 0 8 14Z" fill="#ffb457" opacity=".95"/>` + ground(76, "#100c08") + shadow(60, 77, 22, 4, .5) + box({ cx:60, front:"#7a5535", top_:"#a5743f", side_:"#452e1c" }),
+    "shafts":     () => bg("bgLow") + `<g opacity=".3"><path d="M18 0 4 100h16L34 0Z" fill="#fff"/><path d="M50 0 38 100h13L62 0Z" fill="#fff"/><path d="M82 0 72 100h11L92 0Z" fill="#fff"/></g>` + ground(76, "#0b0b0e") + shadow(50, 77, 22, 4, .5) + box({ front:"#4f4f58", top_:"#75757f", side_:"#333339" }),
+  };
+  return svg(L[id]());
+};
+
+P.temp = id => {
+  const W = {
+    warm:`<rect width="100" height="100" fill="#ff9a3c" opacity=".28"/>`, neutral:"",
+    cool:`<rect width="100" height="100" fill="#4ea6ff" opacity=".26"/>`,
+    mixed:`<rect width="50" height="100" fill="#ff9a3c" opacity=".3"/><rect x="50" width="50" height="100" fill="#4ea6ff" opacity=".3"/>`,
+  };
+  // Neutral gets a grey-card strip — with no colour wash it would otherwise be
+  // indistinguishable from an unstyled scene.
+  return svg(stage() + W[id] + (id === "neutral"
+    ? `<rect x="26" y="85" width="16" height="7" fill="#f2f2f4"/><rect x="42" y="85" width="16" height="7" fill="#8d8d95"/><rect x="58" y="85" width="16" height="7" fill="#2a2a2e"/>` : ""));
+};
+
+/** Two-shot transition preview: outgoing scene A, incoming scene B, plus overlay. */
+function transition(id, dir) {
+  const A = bg("bgLow") + ground(74, "#0b0b0e") + shadow(50, 75, 20, 3.5, .5) + box({ cy:58, s:26, top:.3, side:.4, front:"#3b3b43", top_:"#51515a", side_:"#2a2a30" });
+  // Incoming scene is lit brighter than the default stage so a black ramp
+  // laid over it still reads as a gradient rather than a flat black card.
+  const B = bg() + ground(74) + glow(32, 20, 46, "gW", .38) + shadow(50, 75, 22, 4, .35) +
+    box({ front:"#74747e", top_:"#9a9aa4", side_:"#4e4e57" });
+  const out = dir === "out";
+  // Fades pair a static left-to-right ramp (so a paused card still reads as
+  // "from black" vs "to black") with a solid overlay that animates from
+  // transparent — parking the animation at 0 keeps the scene visible.
+  const ramp = g => `<rect width="100" height="100" fill="url(#${g})"/>`;
+  const veil = c => anim(`<rect x="${OV}" y="${OV}" width="${OW}" height="${OW}" fill="${c}"/>`, "sharpen", "2.4s");
+  switch (id) {
+    case "cut": return svg(A + anim(B, out ? "soften" : "sharpen", "1.6s", "alternate", "steps(1,end)") +
+      `<path d="M50 0v100" stroke="#e6e6ea" stroke-width="1.4" opacity=".8"/>`);
+    case "fade-black": return svg(B + ramp(out ? "fToB" : "fFromB") + veil("#000"));
+    case "fade-white": return svg(B + ramp(out ? "fToW" : "fFromW") + veil("#fff"));
+    case "dissolve": return svg(A + anim(B, "mix", "2.6s"));
+    case "whip": return svg(A + anim(B, out ? "slideOut" : "slideIn", "1.8s", "alternate", "cubic-bezier(.7,0,.3,1)") +
+      `<path d="M4 26h30M4 50h44M4 74h30" stroke="#9a9aa6" stroke-width="1" opacity=".45"/>`);
+    case "match": return svg(bg() + ground(74) + shadow(50, 75, 20, 4) +
+      anim(`<circle cx="50" cy="52" r="19" fill="${FRONT}"/>`, out ? "mix" : "soften", "2.4s") +
+      anim(box({ cy:52, s:34, top:.3, side:.4 }), out ? "soften" : "mix", "2.4s"));
+    case "bloom": return svg(B + anim(glow(50, 46, 62, "gW", 1), "bloom", "2.4s"));
+    default: return svg(B + `<rect x="40" y="40" width="7" height="22" rx="2" fill="#e6e6ea"/><rect x="53" y="40" width="7" height="22" rx="2" fill="#e6e6ea"/>`);
+  }
+}
+P.transIn = id => transition(id, "in");
+P.transOut = id => transition(id, "out");
+
+P.style = id => {
+  const S = {
+    product: () => bg() + ground(74) + glow(30, 18, 42, "gW", .4) + shadow(50, 75, 24, 4, .4) +
+      box({ front:"#6c6c76", top_:"#9a9aa4", side_:"#474750" }) + `<rect x="35" y="42" width="6" height="26" fill="#fff" opacity=".18"/>` +
+      `<g opacity=".16" transform="translate(0 96) scale(1 -.45)">${box({ front:"#9a9aa4", top_:"#fff", side_:"#6c6c76" })}</g>`,
+    cinematic: () => bg("bgWarm") + ground(72, "#1c1610") + glow(78, 30, 34, "gWarm", .5) + glow(16, 56, 30, "gCool", .35) +
+      shadow(50, 73, 22, 4, .5) + box({ front:"#6b5a4a", top_:"#8f7a63", side_:"#3d3229" }) +
+      `<rect width="100" height="13" fill="#000"/><rect y="87" width="100" height="13" fill="#000"/>`,
+    doc: () => `<rect x="${OV}" y="${OV}" width="${OW}" height="${OW}" fill="#4c4f54"/>` + ground(72, "#3a3d41") + shadow(50, 73, 22, 3.5, .25) +
+      box({ front:"#6d7076", top_:"#83868c", side_:"#5a5d63" }) +
+      `<path d="M10 10h8M10 10v8M90 90h-8M90 90v-8" stroke="#fff" stroke-width="1.4" opacity=".55" fill="none"/>`,
+    editorial: () => bg("bgWhite") + shadow(50, 76, 20, 3, .1) + box({ cy:54, s:30, top:.28, side:.35, front:"#2f2f33", top_:"#4c4c52", side_:"#1e1e21" }) +
+      `<rect x="18" y="84" width="34" height="3" rx="1.5" fill="#2f2f33"/><rect x="18" y="90" width="20" height="2.4" rx="1.2" fill="#9a9aa2"/>`,
+    anime: () => `<rect x="${OV}" y="${OV}" width="${OW}" height="${OW}" fill="#8fc7ea"/><rect y="66" width="100" height="34" fill="#6fae7a"/>` +
+      box({ cy:54, s:34, top:.32, side:.42, front:"#f2634f", top_:"#ff9a86", side_:"#b8402f", stroke:"#231a1a", sw:2 }) +
+      `<circle cx="76" cy="20" r="9" fill="#fff8c4" stroke="#231a1a" stroke-width="2"/>`,
+    render: () => bg("bgCool") + `<rect y="70" width="100" height="30" fill="#1a2430"/>` + glow(34, 22, 40, "gCool", .45) +
+      shadow(50, 73, 22, 4, .4) + box({ front:"#4a7ea8", top_:"#78b6dc", side_:"#2e5170" }) +
+      `<circle cx="40" cy="46" r="5" fill="#fff" opacity=".5"/>`,
+    clay: () => `<rect x="${OV}" y="${OV}" width="${OW}" height="${OW}" fill="#c9c5bd"/>` + ground(74, "#b0aca4") + shadow(50, 75, 22, 4, .18) +
+      box({ front:"#a8a49c", top_:"#c2beb6", side_:"#918d86" }),
+    sketch: () => `<rect x="${OV}" y="${OV}" width="${OW}" height="${OW}" fill="#f3f1ec"/>` +
+      `<g opacity=".55">${box({ cx:56, cy:54, s:34, top:.32, side:.42, front:"#d8d4cc", top_:"#e6e2da", side_:"#c4c0b8" })}</g>` +
+      box({ cx:44, cy:56, s:32, top:.32, side:.42, front:"none", top_:"none", side_:"none", stroke:"#2b2b30", sw:1.5 }) +
+      `<path d="M14 84c14-4 26-3 38 2" stroke="#2b2b30" stroke-width="1.1" fill="none" opacity=".7"/>`,
+  };
+  return svg(S[id]());
+};
+
+P.cadence = id => {
+  const C = { 24:["3s","steps(8,end)"], 30:["2.6s","steps(12,end)"], 60:["2.2s","linear"], slowmo:["6s","linear"], timelapse:["1.1s","steps(5,end)"] }[id];
+  const ghost = (id === "24" || id === "slowmo")
+    ? `<g opacity=".2">${box({ cx:38, cy:56, s:30 })}</g><g opacity=".12">${box({ cx:30, cy:56, s:30 })}</g>` : "";
+  return svg(bg() + ground(74) +
+    anim(ghost + shadow(50, 75, 20, 4) + box({ cy:56, s:30 }), "march", C[0], "alternate", C[1]) +
+    `<text x="50" y="93" text-anchor="middle" font-size="11" font-weight="600" fill="#9a9aa6" font-family="monospace">${id === "slowmo" ? "1/4×" : id === "timelapse" ? "60×" : id}</text>`);
+};
+
+P.atmos = id => {
+  const S = stage();
+  switch (id) {
+    case "grain": return svg(S + `<rect width="100" height="100" fill="url(#grain)" opacity=".5"/>`);
+    case "flare": return svg(S + `<ellipse cx="50" cy="34" rx="52" ry="1.8" fill="#9fc8ff" opacity=".8"/>` +
+      glow(30, 34, 24, "gCool", .7) + `<circle cx="62" cy="34" r="5" fill="#a9d0ff" opacity=".3"/><circle cx="76" cy="34" r="3" fill="#ffcf94" opacity=".3"/>`);
+    case "haze": return svg(S + `<g opacity=".3"><rect y="34" width="100" height="10" fill="#fff"/><rect y="52" width="100" height="14" fill="#fff" opacity=".7"/><rect y="70" width="100" height="18" fill="#fff" opacity=".5"/></g>`);
+    case "bokeh": return svg(bg() + `<g filter="url(#fb1)" opacity=".55"><circle cx="22" cy="24" r="11" fill="#cfe0ff"/><circle cx="74" cy="18" r="7" fill="#ffe0b0"/><circle cx="84" cy="46" r="9" fill="#cfe0ff"/><circle cx="16" cy="52" r="5" fill="#ffe0b0"/></g>` +
+      ground(74) + shadow(50, 75, 22, 4) + box({ cy:58, s:30 }));
+    case "dust": return svg(S + anim(`<g fill="#fff" opacity=".75"><circle cx="18" cy="30" r="1.2"/><circle cx="42" cy="18" r="1"/><circle cx="66" cy="34" r="1.3"/><circle cx="84" cy="22" r="1"/><circle cx="30" cy="52" r="1.1"/><circle cx="72" cy="60" r="1"/><circle cx="54" cy="42" r="1.2"/></g>`, "drift", "4s"));
+    case "wet": return svg(bg() + `<rect y="72" width="100" height="28" fill="#15151a"/>` + box({ cy:56, s:30 }) +
+      `<g opacity=".35" transform="translate(0 144) scale(1 -1)">${box({ cy:56, s:30 })}</g>` +
+      `<rect y="72" width="100" height="28" fill="url(#bgN)" opacity=".45"/><path d="M0 80h100M0 88h100" stroke="#6a7a90" stroke-width=".6" opacity=".5"/>`);
+    case "vignette": return svg(S + `<rect width="100" height="100" fill="url(#vigR)"/>`);
+    default: return svg(bg() + ground(74) + anim(shadow(50, 75, 22, 4) + box({ cy:56, s:32 }), "breathe", "3.4s"));
+  }
+};
+
+const preview = (fieldId, itemId) => P[fieldId] ? P[fieldId](itemId) : "";
+
+/* ===========================================================================
+ * Vision descriptions from the user's own API key.
+ *
+ * Which providers can be called straight from a page like this is decided by
+ * CORS, and it was measured, not assumed — from both file:// and
+ * http://localhost, with dummy keys:
+ *
+ *   Anthropic  readable 401   (needs the anthropic-dangerous-direct-browser
+ *                              -access header, else blocked)
+ *   Gemini     readable 400   (key goes in the query string)
+ *   OpenAI     blocked        (no CORS headers at all, from any origin —
+ *                              a ChatGPT key needs a proxy server, so it
+ *                              isn't offered here)
+ *
+ * Keys live in this browser's localStorage, one per provider. Images are sent
+ * only when Describe is pressed.
+ * ------------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------------------
+ * PUT AN API KEY HERE to have it filled in on every load — either one.
+ *
+ *   const DEFAULT_GEMINI_KEY = "AIza...";        // aistudio.google.com/apikey
+ *   const DEFAULT_CLAUDE_KEY = "sk-ant-...";     // console.anthropic.com
+ *
+ * Leave them empty to type a key into the app instead; it persists in this
+ * browser either way, so you enter it once.
+ *
+ * A key on these lines is plain text inside this file. Blank it before sending
+ * the file to anyone, publishing it, or committing it: whoever holds the file
+ * can spend against your account, and providers revoke keys found in public
+ * repositories.
+ * ------------------------------------------------------------------------- */
+const DEFAULT_GEMINI_KEY = "";
+const DEFAULT_CLAUDE_KEY = "";
+
+const PROVIDERS = {
+  gemini: {
+    label: "Gemini",
+    hint: "get one free at <b>aistudio.google.com/apikey</b> &mdash; no billing setup needed",
+    placeholder: "AIza…",
+    ls: "omni-animate-gemini-key",
+    fallback: () => DEFAULT_GEMINI_KEY,
+    // flash-lite is the cheap fast one; the stable id is the retry if the
+    // rolling alias isn't live on an account.
+    models: ["gemini-flash-lite-latest", "gemini-2.0-flash"],
+    request(model, key, media, b64, prompt) {
+      return {
+        url: `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`,
+        init: {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ inline_data:{ mime_type:media, data:b64 } }, { text:prompt }] }],
+            generationConfig: { temperature:0.2, maxOutputTokens:400, responseMimeType:"application/json" },
+          }),
+        },
+      };
+    },
+    text: j => ((((j.candidates || [])[0] || {}).content || {}).parts || [])
+      .map(p => p.text || "").join(""),
+    error: (status, msg) =>
+      status === 400 && /API key not valid/i.test(msg) ? "Key rejected. Check it and save again." :
+      status === 429 ? "Rate limited — wait a moment and retry." :
+      status === 403 ? "Key refused: the Generative Language API may not be enabled for it." : "",
+  },
+  claude: {
+    label: "Claude",
+    // Worth spelling out: a Claude.ai Pro/Team seat is a different product and
+    // grants no API key. People reasonably assume it does.
+    hint: "needs a paid <b>console.anthropic.com</b> API key &mdash; a Claude.ai Pro or Team " +
+          "subscription is a separate product and does not include one",
+    placeholder: "sk-ant-…",
+    ls: "omni-animate-claude-key",
+    fallback: () => DEFAULT_CLAUDE_KEY,
+    models: ["claude-haiku-4-5-20251001"],
+    request(model, key, media, b64, prompt) {
+      return {
+        url: "https://api.anthropic.com/v1/messages",
+        init: {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-api-key": key,
+            "anthropic-version": "2023-06-01",
+            // Without this header the browser blocks the request.
+            "anthropic-dangerous-direct-browser-access": "true",
+          },
+          body: JSON.stringify({
+            model, max_tokens: 400,
+            messages: [{ role:"user", content:[
+              { type:"image", source:{ type:"base64", media_type:media, data:b64 } },
+              { type:"text", text:prompt },
+            ]}],
+          }),
+        },
+      };
+    },
+    text: j => (j.content || []).filter(c => c.type === "text").map(c => c.text).join(""),
+    error: status =>
+      status === 401 ? "Key rejected. Check it and save again." :
+      status === 429 ? "Rate limited — wait a moment and retry." : "",
+  },
+};
+
+const VISION_PROMPT =
+  "Identify what is in this reference image, for use in a video-generation prompt. " +
+  "Reply with nothing but JSON in this exact shape:\n" +
+  '{"subject":"...","elements":["..."],"detail":"..."}\n' +
+  "subject: 2-6 words naming the main thing, no leading article, no punctuation. " +
+  'Use words a director would use ("orc warchief in iron plate", "matte-black cordless drill").\n' +
+  "elements: 3 to 6 short phrases, each 1-4 words, listing the distinct things actually visible " +
+  "in the scene — objects, surroundings, notable materials or props. No duplicates of subject.\n" +
+  "detail: one sentence, 25 words maximum, on materials, palette and mood. " +
+  "Describe only what is visible; never mention that this is an image or a render.";
+
+const vision = { status:"idle", note:"", done:0, of:0, provider:"gemini" };
+
+const provider = () => PROVIDERS[vision.provider];
+const getKey = (pid = vision.provider) => {
+  const p = PROVIDERS[pid];
+  try { return localStorage.getItem(p.ls) || p.fallback() || ""; }
+  catch { return p.fallback() || ""; }
+};
+const setKey = (k, pid = vision.provider) => {
+  try {
+    const p = PROVIDERS[pid];
+    k ? localStorage.setItem(p.ls, k) : localStorage.removeItem(p.ls);
+  } catch { /* private browsing */ }
+};
+const hasKey = (pid = vision.provider) => getKey(pid).trim().length > 0;
+
+/** Split a data: URL into media type and base64 payload. */
+function dataUrlParts(url) {
+  const m = /^data:([^;,]+);base64,(.*)$/.exec(String(url || ""));
+  if (!m) return null;
+  const ok = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+  return { media: ok.includes(m[1]) ? m[1] : "image/jpeg", b64: m[2] };
+}
+
+/** Pull a JSON object out of a reply that may carry prose around it. */
+function parseReply(text) {
+  const s = String(text || "");
+  const a = s.indexOf("{"), b = s.lastIndexOf("}");
+  if (a < 0 || b <= a) return null;
+  try { return JSON.parse(s.slice(a, b + 1)); } catch { return null; }
+}
+
+/** Describe one image. Returns {subject, elements, detail} or null. */
+async function captionImage(url) {
+  const P = provider();
+  if (!hasKey()) { vision.note = `Add a ${P.label} API key first.`; return null; }
+  const parts = dataUrlParts(url);
+  if (!parts) { vision.note = "That image couldn't be read."; return null; }
+  const key = getKey().trim();
+
+  let lastNote = "";
+  for (const model of P.models) {
+    const { url:endpoint, init } = P.request(model, key, parts.media, parts.b64, VISION_PROMPT);
+    let r;
+    try { r = await fetch(endpoint, init); }
+    catch { vision.note = "Couldn't reach the API — check your connection."; return null; }
+
+    if (!r.ok) {
+      let msg = "";
+      try { msg = (((await r.json()).error) || {}).message || ""; } catch { /* non-JSON */ }
+      // An unknown model id is worth retrying on the next candidate; anything
+      // else is a real failure and shouldn't burn another call.
+      if (r.status === 404 || /not found|not supported|unsupported/i.test(msg)) {
+        lastNote = `${model} unavailable on this key`;
+        continue;
+      }
+      vision.note = P.error(r.status, msg) || `API error ${r.status}${msg ? ": " + msg.slice(0, 90) : ""}`;
+      return null;
+    }
+    let j;
+    try { j = await r.json(); } catch { vision.note = "Unreadable reply from the API."; return null; }
+    const got = parseReply(P.text(j));
+    if (!got || !got.subject) { vision.note = "The model didn't return a usable description."; return null; }
+    vision.note = "";
+    return {
+      subject: tidySubject(got.subject),
+      elements: tidyElements(got.elements),
+      detail: tidyDetail(got.detail),
+    };
+  }
+  vision.note = lastNote || "No usable model for this key.";
+  return null;
+}
+
+/** Guards, in case a model slips in an article or a preamble anyway. */
+function tidySubject(s) {
+  return String(s || "").trim().replace(/\s+/g, " ").replace(/[.!]+$/, "")
+    .replace(/^(an?|the)\s+/i, "")
+    .replace(/^(image|photo|picture|photograph|rendering|render)\s+of\s+(an?|the)?\s*/i, "")
+    .slice(0, 70);
+}
+function tidyDetail(s) {
+  return String(s || "").trim().replace(/\s+/g, " ")
+    .replace(/^(the image (shows|is|depicts)|in this image (we can see|there is)|this image (shows|is))\s+/i, "")
+    .replace(/^./, c => c.toUpperCase())
+    .slice(0, 240);
+}
+function tidyElements(a) {
+  return (Array.isArray(a) ? a : [])
+    .map(x => String(x || "").trim().replace(/\s+/g, " ").replace(/[.,;]+$/, "").replace(/^(an?|the)\s+/i, ""))
+    .filter(x => x && x.length <= 40)
+    .slice(0, 6);
+}
+
+/* ===========================================================================
+ * 4. State
+ * ======================================================================== */
+
+const newShot = dur => ({ dur, scene:"", action:"", framing:null, angle:null, lens:null, dof:null,
+  motion:[], speed:null, light:null, temp:null, transIn:null, transOut:null });
+
+const state = {
+  step: 0, activeShot: 0, format: "prose", visited: new Set([0]),
+  expanded: new Set(), preset: null, openField: null, openGroups: new Set(),
+  refs: [], selectedShot: 0,
+  style: null, cadence: null, atmos: [],
+  shots: [newShot(5)],
+};
+
+/**
+ * Resolve `{category|fallback}` tokens against uploaded references. A matching
+ * upload becomes its own note plus "(ref N)" so the model binds the words to
+ * the image; with nothing uploaded the generic fallback keeps the line
+ * readable.
+ */
+/** Inline citation: the name and the ref number only. The extracted palette
+ *  and tone belong in the References block, not wedged mid-sentence. */
+function refPhrase(r) {
+  const name = (r.subject || "").trim() ||
+    (REF_CATS.find(c => c[0] === r.cat) || [, "reference"])[1].toLowerCase();
+  return `${name} (ref ${state.refs.indexOf(r) + 1})`;
+}
+
+/**
+ * Resolve reference tokens. `{this}` is the reference the current beat is
+ * expanding for; `{category|fallback}` takes the first reference of that
+ * category, or the fallback wording when none was uploaded.
+ */
+function fillRefs(text, thisRef) {
+  return String(text || "")
+    .replace(/\{this\}/g, () => thisRef ? refPhrase(thisRef) : "the subject")
+    .replace(/\{(\w+)\|([^}]*)\}/g, (_, cat, fallback) => {
+      const r = state.refs.find(x => x.cat === cat);
+      return r ? refPhrase(r) : fallback;
+    });
+}
+
+/** Fill the whole wizard from a preset — settings and written text alike. */
+function applyPreset(p) {
+  state.preset = p.id;
+  state.style = p.style; state.cadence = p.cadence; state.atmos = [...p.atmos];
+  state.shots = expandPreset(p);
+  state.activeShot = 0;
+  state.openField = null;
+  rebalance();
+}
+
+const allItems = f => f.groups ? f.groups.flatMap(g => g.items) : f.items;
+const item = (fieldId, id) => allItems(FIELD[fieldId]).find(i => i[0] === id);
+const isShotField = id => SHOT_FIELDS.includes(id);
+const shot = () => state.shots[state.activeShot];
+const get = id => isShotField(id) ? shot()[id] : state[id];
+function put(id, v) { if (isShotField(id)) shot()[id] = v; else state[id] = v; }
+const prose = (fieldId, v) => v ? item(fieldId, v)[2] : null;
+const totalDur = () => state.shots.reduce((a, s) => a + s.dur, 0);
+
+/** Trim the longest shots until the whole piece fits the runtime cap. */
+function rebalance() {
+  state.shots.forEach(s => { s.dur = Math.max(MIN_SHOT, Math.min(MAX_TOTAL, Math.round(s.dur) || MIN_SHOT)); });
+  let guard = 500;
+  while (totalDur() > MAX_TOTAL && guard--) {
+    let bi = 0;
+    state.shots.forEach((s, i) => { if (s.dur > state.shots[bi].dur) bi = i; });
+    if (state.shots[bi].dur <= MIN_SHOT) break;
+    state.shots[bi].dur--;
+  }
+}
+
+/** A step counts as done once it has been visited and holds an answer.
+ *  Gating on `visited` stops steps with usable defaults (Basics) from showing
+ *  a tick before the user has ever seen them. */
+function stepDone(s, i) {
+  if (!state.visited.has(i)) return false;
+  if (s.id === "refs") return state.refs.length > 0;
+  if (s.id === "preset") return state.preset !== null;
+  if (s.id === "shots") return state.shots.some(sh => sh.scene.trim() || sh.action.trim());
+  return false;
+}
+
+/* ===========================================================================
+ * 5. Rendering
+ * ======================================================================== */
+
+const stageEl = document.getElementById("stage");
+const railEl = document.getElementById("rail");
+const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+const pad = n => String(n).padStart(2, "0");
+
+function renderRail() {
+  railEl.innerHTML = "";
+  STEPS.forEach((s, i) => {
+    const done = stepDone(s, i);
+    const b = el("button", "rstep" + (done ? " done" : ""));
+    b.type = "button";
+    b.setAttribute("aria-current", String(i === state.step));
+    b.innerHTML = `<span class="n">${done && i !== state.step ? "&check;" : pad(i + 1)}</span>${s.name}`;
+    b.addEventListener("click", () => goto(i));
+    railEl.appendChild(b);
+  });
+}
+
+function cardGrid(fieldId) {
+  const f = FIELD[fieldId];
+  const wrap = el("div", "field");
+  wrap.innerHTML = `<label>${f.label}${f.max ? ` <span class="optional">(up to ${f.max})</span>` : ""}</label>`;
+
+  const core = CORE[fieldId];
+  const open = !core || state.expanded.has(fieldId);
+  const cur = get(fieldId);
+  const chosen = id => Array.isArray(cur) ? cur.includes(id) : cur === id;
+  const visible = id => open || core.includes(id) || chosen(id);
+  let hidden = 0;
+
+  for (const g of (f.groups || [{ name:null, items:f.items }])) {
+    const items = g.items.filter(([id]) => visible(id));
+    hidden += g.items.length - items.length;
+    if (!items.length) continue;
+    if (g.name) wrap.appendChild(el("span", "grouplabel", g.name));
+    const grid = el("div", "cards");
+    for (const [id, label] of items) {
+      const b = el("button", "card");
+      b.type = "button";
+      b.dataset.field = fieldId; b.dataset.id = id;
+      const cur = get(fieldId);
+      const on = Array.isArray(cur) ? cur.includes(id) : cur === id;
+      b.setAttribute("aria-pressed", String(on));
+      const show = on && Array.isArray(cur) && cur.length > 1;
+      b.innerHTML = `<span class="ord${show ? " on" : ""}">${show ? cur.indexOf(id) + 1 : ""}</span>` +
+        `<span class="frame">${preview(fieldId, id)}</span><span class="cap">${label}</span>`;
+      // Update in place: a full re-render would rebuild every preview SVG and
+      // make the step flash. The summary chip above the editor has to be
+      // repainted too, or it keeps showing the pre-click value.
+      b.addEventListener("click", () => {
+        toggle(fieldId, id); refreshCards(fieldId); refreshSetChips();
+        refreshPrompt(); if (state.selectedShot != null) refreshTile(state.selectedShot);
+        renderRail();
+      });
+      grid.appendChild(b);
+    }
+    wrap.appendChild(grid);
+  }
+
+  if (core && (hidden || open)) {
+    const t = el("button", "more", open ? "Show fewer" : `Show ${hidden} more`);
+    t.type = "button";
+    t.addEventListener("click", () => {
+      state.expanded.has(fieldId) ? state.expanded.delete(fieldId) : state.expanded.add(fieldId);
+      renderStep();
+    });
+    wrap.appendChild(t);
+  }
+  return wrap;
+}
+
+/** Repaint every settings-chip summary from state, without a full re-render. */
+function refreshSetChips() {
+  for (const b of document.querySelectorAll(".setchip[data-set]")) {
+    const [si, f] = b.dataset.set.split(":");
+    const v = settingLabel(f, si === "g" ? null : state.shots[Number(si)]);
+    b.querySelector(".v").textContent = v || "—";
+    b.classList.toggle("unset", !v);
+  }
+}
+
+/** Repaint one field's selection state without rebuilding the step. */
+function refreshCards(fieldId) {
+  const cur = get(fieldId);
+  for (const b of document.querySelectorAll(`.card[data-field="${fieldId}"]`)) {
+    const on = Array.isArray(cur) ? cur.includes(b.dataset.id) : cur === b.dataset.id;
+    b.setAttribute("aria-pressed", String(on));
+    const ord = b.querySelector(".ord");
+    const show = on && Array.isArray(cur) && cur.length > 1;
+    ord.textContent = show ? String(cur.indexOf(b.dataset.id) + 1) : "";
+    ord.classList.toggle("on", show);
+  }
+}
+
+/** Clicking a selected card clears it, so any field can be left unanswered. */
+function toggle(fieldId, id) {
+  const f = FIELD[fieldId];
+  if (f.max) {
+    const cur = get(fieldId), at = cur.indexOf(id);
+    if (at >= 0) cur.splice(at, 1);
+    else if (cur.length < f.max) cur.push(id);
+    else { cur.shift(); cur.push(id); }
+  } else {
+    put(fieldId, get(fieldId) === id ? null : id);
+  }
+}
+
+/* ---- the shot list: every per-shot control on one page ------------------- */
+
+/** Compact summary label for one field's current value on a given shot. */
+function settingLabel(fieldId, sh) {
+  const v = sh ? sh[fieldId] : state[fieldId];
+  if (Array.isArray(v)) return v.length ? v.map(x => item(fieldId, x)[1]).join(" + ") : null;
+  return v ? item(fieldId, v)[1] : null;
+}
+
+/** Row of setting chips; clicking one opens that field's cards underneath. */
+function settingsRow(fields, shotIdx) {
+  const key = f => `${shotIdx ?? "g"}:${f}`;
+  const wrap = el("div", "settings");
+  const row = el("div", "setrow");
+  for (const f of fields) {
+    // Only the final shot closes the piece.
+    if (f === "transOut" && shotIdx !== state.shots.length - 1) continue;
+    const sh = shotIdx == null ? null : state.shots[shotIdx];
+    const val = settingLabel(f, sh);
+    const b = el("button", "setchip" + (val ? "" : " unset"));
+    b.type = "button";
+    b.dataset.set = key(f);
+    b.setAttribute("aria-pressed", String(state.openField === key(f)));
+    const name = (f === "transIn" && shotIdx > 0) ? `From shot ${shotIdx}` : FIELD[f].label;
+    b.innerHTML = `<span class="k">${name}</span><span class="v">${val || "—"}</span>`;
+    b.addEventListener("click", () => {
+      state.openField = state.openField === key(f) ? null : key(f);
+      if (shotIdx != null) state.activeShot = shotIdx;
+      renderStep();
+    });
+    row.appendChild(b);
+  }
+  wrap.appendChild(row);
+
+  const openF = fields.find(f => state.openField === key(f));
+  if (openF) {
+    if (shotIdx != null) state.activeShot = shotIdx;
+    const panel = el("div", "editor");
+    panel.appendChild(cardGrid(openF));
+    const done = el("button", "more", "Done");
+    done.type = "button";
+    done.addEventListener("click", () => { state.openField = null; renderStep(); });
+    panel.appendChild(done);
+    wrap.appendChild(panel);
+  }
+  return wrap;
+}
+
+/** Storyboard tile for one shot — its framing preview, number and duration. */
+function shotTile(sh, i) {
+  const b = el("button", "tile");
+  b.type = "button";
+  b.setAttribute("aria-pressed", String(state.selectedShot === i));
+  const pv = sh.framing ? preview("framing", sh.framing)
+    : `<svg class="pv" viewBox="0 0 100 100" aria-hidden="true"><rect x="-40" y="-40" width="180" height="180" fill="#191a1e"/>` +
+      `<rect x="26" y="32" width="48" height="36" rx="3" fill="none" stroke="#4a4a52" stroke-width="2" stroke-dasharray="5 4"/></svg>`;
+  const first = (sh.scene || "").trim().split(/\s+/).slice(0, 7).join(" ");
+  b.innerHTML =
+    `<span class="tframe">${pv}<span class="tnum">${i + 1}</span><span class="tdur">${sh.dur}s</span></span>` +
+    `<span class="tcap">${first ? first + (sh.scene.trim().split(/\s+/).length > 7 ? "…" : "") : "<em>empty</em>"}</span>`;
+  b.addEventListener("click", () => {
+    state.selectedShot = i; state.openField = null; state.activeShot = i;
+    renderStep();
+  });
+  return b;
+}
+
+function renderShots() {
+  const frag = document.createDocumentFragment();
+  const total = totalDur(), spare = MAX_TOTAL - total;
+
+  const head = el("div", "runbar");
+  head.appendChild(el("span", "runlabel", "Runtime"));
+  const bar = el("div", "bar");
+  state.shots.forEach(sh => { const s = el("span"); s.style.width = (sh.dur / MAX_TOTAL * 100) + "%"; bar.appendChild(s); });
+  head.appendChild(bar);
+  head.appendChild(el("span", "runval" + (spare === 0 ? " full" : ""), `${total}s / ${MAX_TOTAL}s`));
+  frag.appendChild(head);
+
+  // References added after the preset was chosen aren't in the list until it
+  // is expanded again.
+  const p = PRESETS.find(x => x.id === state.preset);
+  if (p && p.recipe.some(b => b.role === "per")) {
+    const n = Math.min(MAX_SHOTS, p.recipe.filter(b => b.role === "per")
+      .reduce((a, b) => a + Math.max(1, state.refs.filter(r => r.cat === b.cat).length), 0)
+      + p.recipe.filter(b => b.role !== "per").length);
+    if (n !== state.shots.length) {
+      const rb = el("button", "rebuild",
+        `Rebuild from references &mdash; ${state.refs.length} image${state.refs.length === 1 ? "" : "s"} would give ${n} shots`);
+      rb.type = "button";
+      rb.addEventListener("click", () => { applyPreset(p); state.selectedShot = 0; renderStep(); renderRail(); });
+      frag.appendChild(rb);
+    }
+  }
+
+  // storyboard
+  const grid = el("div", "tiles");
+  state.shots.forEach((sh, i) => grid.appendChild(shotTile(sh, i)));
+  if (state.shots.length < MAX_SHOTS && spare >= MIN_SHOT) {
+    const add = el("button", "tile addtile", `<span class="tframe"><span class="plus">+</span></span><span class="tcap">Add a shot</span>`);
+    add.type = "button";
+    add.addEventListener("click", () => {
+      state.shots.push(newShot(Math.max(MIN_SHOT, Math.min(3, MAX_TOTAL - totalDur()))));
+      rebalance(); state.selectedShot = state.shots.length - 1; state.activeShot = state.selectedShot;
+      renderStep(); renderRail();
+    });
+    grid.appendChild(add);
+  }
+  frag.appendChild(grid);
+
+  // the selected shot's editor
+  const i = Math.min(state.selectedShot, state.shots.length - 1);
+  const sh = state.shots[i];
+  if (sh) {
+    const card = el("div", "shotcard");
+    const hd = el("div", "shothead");
+    hd.appendChild(el("span", "shotn", `Shot ${i + 1}`));
+    const minus = el("button", "step-btn", "&minus;");
+    minus.type = "button"; minus.disabled = sh.dur <= MIN_SHOT;
+    minus.addEventListener("click", () => { sh.dur--; renderStep(); });
+    const val = el("span", "shotdur", `${sh.dur}s`);
+    const plus = el("button", "step-btn", "+");
+    plus.type = "button"; plus.disabled = spare <= 0;
+    plus.addEventListener("click", () => { sh.dur++; rebalance(); renderStep(); });
+    hd.append(minus, val, plus);
+    if (state.shots.length > 1) {
+      const del = el("button", "shotdel", "Remove");
+      del.type = "button";
+      del.addEventListener("click", () => {
+        state.shots.splice(i, 1);
+        state.openField = null;
+        state.selectedShot = Math.max(0, Math.min(i, state.shots.length - 1));
+        state.activeShot = state.selectedShot;
+        renderStep(); renderRail();
+      });
+      hd.appendChild(del);
+    }
+    card.appendChild(hd);
+
+    for (const [f, rows] of [["scene", 3], ["action", 2]]) {
+      const ta = Object.assign(document.createElement("textarea"), { rows, value:sh[f] });
+      ta.placeholder = f === "scene" ? FIELD.scene.placeholder : FIELD.action.placeholder;
+      ta.className = "shottext" + (f === "action" ? " sub" : "");
+      // Repaint the prompt and this shot's tile, but never re-render the step —
+      // that would blur the field mid-sentence.
+      ta.addEventListener("input", () => {
+        sh[f] = ta.value; refreshPrompt(); refreshTile(i); renderRail();
+      });
+      card.appendChild(ta);
+    }
+    if (state.refs.length) {
+      const row = el("div", "refins");
+      state.refs.forEach((r, n) => {
+        const b = el("button", "refchip", `ref ${n + 1}`);
+        b.type = "button";
+        b.title = describeRef(r);
+        b.addEventListener("click", () => {
+          const ta = card.querySelector("textarea");
+          const at = ta.selectionStart ?? ta.value.length;
+          ta.value = ta.value.slice(0, at) + `ref ${n + 1}` + ta.value.slice(ta.selectionEnd ?? at);
+          sh.scene = ta.value; ta.focus(); refreshPrompt(); refreshTile(i);
+        });
+        row.appendChild(b);
+      });
+      card.appendChild(row);
+    }
+    card.appendChild(settingsRow(SHOT_SETTINGS, i));
+    frag.appendChild(card);
+  }
+
+  const look = el("div", "shotcard look");
+  look.appendChild(el("div", "shothead", `<span class="shotn">Whole piece</span>`));
+  look.appendChild(settingsRow(LOOK_SETTINGS, null));
+  frag.appendChild(look);
+
+  frag.appendChild(promptBlock());
+  return frag;
+}
+
+/** Repaint one storyboard tile in place. */
+function refreshTile(i) {
+  const tiles = document.querySelectorAll(".tiles .tile");
+  if (!tiles[i] || !state.shots[i]) return;
+  tiles[i].replaceWith(shotTile(state.shots[i], i));
+}
+
+/** The live prompt, pinned to the bottom of the shot list. */
+function promptBlock() {
+  const pw = el("div", "promptwrap");
+  const head = el("div", "prompt-head",
+    `<h3>Prompt &mdash; ${state.shots.length} shot${state.shots.length > 1 ? "s" : ""} &middot; ${totalDur()}s</h3>`);
+  const seg = el("div", "seg");
+  for (const [f, label] of [["prose", "Prose"], ["labeled", "Labeled"]]) {
+    const b = el("button", null, label);
+    b.type = "button"; b.dataset.format = f;
+    b.setAttribute("aria-pressed", String(state.format === f));
+    b.addEventListener("click", () => {
+      state.format = f;
+      for (const x of seg.children) x.setAttribute("aria-pressed", String(x === b));
+      refreshPrompt();
+    });
+    seg.appendChild(b);
+  }
+  head.appendChild(seg);
+  const cp = el("button", "btn btn-accent", "Copy");
+  cp.type = "button"; cp.style.cssText = "padding:.45rem 1.1rem;font-size:.8rem";
+  cp.addEventListener("click", () => copyPrompt(cp));
+  head.appendChild(cp);
+  pw.appendChild(head);
+  pw.appendChild(Object.assign(document.createElement("textarea"), { id:"output", readOnly:true, spellcheck:false }));
+  pw.appendChild(el("div", "meter", `<span>Words <b id="wc">0</b></span><span>Characters <b id="cc">0</b></span>`));
+  return pw;
+}
+
+/** Recompute the prompt text only — cheap enough to run on every keystroke. */
+function refreshPrompt() {
+  const out = document.getElementById("output");
+  if (!out) return;
+  const text = promptText();
+  out.value = text.trim() ? text : "Nothing written yet — pick a preset or fill in a shot.";
+  const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+  const wc = document.getElementById("wc"), cc = document.getElementById("cc");
+  if (wc) wc.textContent = words;
+  if (cc) cc.textContent = text.length;
+  const h = document.querySelector(".prompt-head h3");
+  if (h) h.textContent = `Prompt — ${state.shots.length} shot${state.shots.length > 1 ? "s" : ""} · ${totalDur()}s`;
+}
+
+function renderPresets() {
+  const f = el("div", "field");
+  const groups = [...new Set(PRESETS.map(p => p.group))]
+    .sort((a, b) => GROUP_ORDER.indexOf(a) - GROUP_ORDER.indexOf(b));
+  // Thirty-odd presets only stay scannable collapsed; the first group and any
+  // group holding the current pick start open.
+  if (!state.openGroups.size) state.openGroups.add(groups[0]);
+  const cur = PRESETS.find(x => x.id === state.preset);
+  if (cur) state.openGroups.add(cur.group);
+  for (const gname of groups) {
+    const members = PRESETS.filter(x => x.group === gname);
+    const open = state.openGroups.has(gname);
+    const hdr = el("button", "groupbtn" + (open ? " open" : ""));
+    hdr.type = "button";
+    hdr.setAttribute("aria-expanded", String(open));
+    hdr.innerHTML = `<span class="caret">${open ? "&minus;" : "+"}</span><span class="gname">${gname}</span>` +
+      `<span class="gcount">${members.length}</span>`;
+    hdr.addEventListener("click", () => {
+      open ? state.openGroups.delete(gname) : state.openGroups.add(gname);
+      renderStep();
+    });
+    f.appendChild(hdr);
+    if (!open) continue;
+    const grid = el("div", "presets");
+    for (const p of members) {
+      const b = el("button", "preset");
+      b.type = "button";
+      b.setAttribute("aria-pressed", String(state.preset === p.id));
+      // Expand against the actual uploads so the card previews what this
+      // preset would build right now, not a fixed example.
+      const shots = expandPreset(p);
+      const total = shots.reduce((a, s) => a + s.dur, 0);
+      const beats = shots.map((s, i) =>
+        `<span class="beat"><b>${i + 1}</b> ${s.framing ? item("framing", s.framing)[1] : "Open"}` +
+        `${s.motion && s.motion.length ? " &middot; " + item("motion", s.motion[0])[1] : ""}` +
+        `<i>${s.dur}s</i></span>`).join("");
+      b.innerHTML =
+        `<span class="thumb">${p.pv ? preview(p.pv[0], p.pv[1])
+          : `<svg class="pv" viewBox="0 0 100 100" aria-hidden="true"><rect x="-40" y="-40" width="180" height="180" fill="#191a1e"/>` +
+            `<rect x="22" y="30" width="56" height="40" rx="3" fill="none" stroke="#5a5a66" stroke-width="2" stroke-dasharray="5 4"/>` +
+            `<path d="M50 42v16M42 50h16" stroke="#5a5a66" stroke-width="2" stroke-linecap="round"/></svg>`}</span>` +
+        `<span class="txt"><h4>${p.name}</h4><p>${p.sum}</p>` +
+        `<span class="beats">${beats}</span>` +
+        `<span class="meta">${shots.length} shot${shots.length > 1 ? "s" : ""} &middot; ${total}s total</span></span>`;
+      b.addEventListener("click", () => { applyPreset(p); state.selectedShot = 0; goto(state.step + 1); });
+      grid.appendChild(b);
+    }
+    f.appendChild(grid);
+  }
+  return f;
+}
+
+/** Vision panel: pick a provider, hold its key, describe the uploaded images. */
+function visionPanel() {
+  const box = el("div", "vpanel");
+  // Re-find the mounted panel; closing over `box` would leave every repaint
+  // after the first writing into a detached node.
+  const repaint = () => {
+    const cur = document.querySelector(".vpanel");
+    if (cur) cur.replaceWith(visionPanel());
+  };
+  const P = provider();
+
+  const head = el("div", "vhead");
+  head.appendChild(el("span", "vlabel", "Identify scene elements"));
+  if (vision.status === "working") head.appendChild(el("span", "vpct", `${vision.done} of ${vision.of}`));
+  const seg = el("div", "seg");
+  for (const [pid, def] of Object.entries(PROVIDERS)) {
+    const b = el("button", null, def.label);
+    b.type = "button";
+    b.setAttribute("aria-pressed", String(vision.provider === pid));
+    // Each provider keeps its own key, so switching never discards the other.
+    b.addEventListener("click", () => { vision.provider = pid; vision.note = ""; renderStep(); });
+    seg.appendChild(b);
+  }
+  head.appendChild(seg);
+  box.appendChild(head);
+
+  const row = el("div", "keyrow");
+  const input = Object.assign(document.createElement("input"), {
+    type:"password", value:getKey(), placeholder:P.placeholder,
+  });
+  input.className = "keyinput";
+  input.autocomplete = "off"; input.spellcheck = false;
+  row.appendChild(input);
+
+  const save = el("button", "btn btn-ghost", hasKey() ? "Update" : "Save key");
+  save.type = "button";
+  save.style.cssText = "padding:.5rem 1rem;font-size:.8rem";
+  // Full re-render: the per-image buttons on each card are gated on a key.
+  save.addEventListener("click", () => { setKey(input.value.trim()); vision.note = ""; renderStep(); });
+  row.appendChild(save);
+
+  const go = el("button", "btn btn-accent", "Describe all");
+  go.type = "button";
+  go.style.cssText = "padding:.5rem 1.1rem;font-size:.8rem";
+  go.disabled = !hasKey() || vision.status === "working";
+  go.addEventListener("click", async () => {
+    vision.status = "working"; vision.note = ""; vision.done = 0; vision.of = state.refs.length;
+    renderStep();
+    for (const r of state.refs) {
+      r.busy = true; renderStep();
+      await describeOne(r);
+      r.busy = false; vision.done++;
+      if (vision.note) break;            // stop the run on the first real failure
+      renderStep();
+    }
+    vision.status = vision.note ? "failed" : "idle";
+    renderStep();
+  });
+  row.appendChild(go);
+  box.appendChild(row);
+
+  box.appendChild(el("p", "hint",
+    hasKey()
+      ? `Key saved in this browser. Uses <code>${P.models[0]}</code>. ` +
+        `Names each image and lists what's in the scene. Images are sent to ${P.label} only when you press Describe.`
+      : `Paste a ${P.label} key &mdash; ${P.hint}. Stored in this browser only. ` +
+        `A ChatGPT key can't be used from a page like this: OpenAI's API sends no CORS headers, so the browser blocks the call.`));
+  if (vision.note) box.appendChild(el("p", "hint", `<span class="vwarn">${vision.note}</span>`));
+  if (hasKey()) {
+    const forget = el("button", "vclear", `Forget ${P.label} key`);
+    forget.type = "button";
+    forget.addEventListener("click", () => { setKey(""); vision.note = ""; renderStep(); });
+    const wrap = el("p", "hint");
+    wrap.appendChild(forget);
+    box.appendChild(wrap);
+  }
+  return box;
+}
+
+/** Caption one reference and write the result into state. Callers re-render. */
+async function describeOne(r) {
+  if (!r.url) return false;
+  const got = await captionImage(r.url);
+  if (got && got.subject) {
+    r.subject = got.subject;
+    r.detail = got.detail || "";
+    r.elements = got.elements || [];
+    renderRail();
+    return true;
+  }
+  return false;
+}
+
+function renderRefs() {
+  const frag = document.createDocumentFragment();
+  const drop = el("div", "drop", `<strong>Drop images here</strong><span>or click to browse</span>`);
+  drop.addEventListener("click", () => document.getElementById("filein").click());
+  ["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+  drop.addEventListener("drop", e => addFiles(e.dataTransfer.files));
+  const f = el("div", "field");
+  f.appendChild(drop);
+  frag.appendChild(f);
+
+  if (state.refs.length) frag.appendChild(visionPanel());
+
+  if (state.refs.length) {
+    const grid = el("div", "refgrid");
+    state.refs.forEach((r, i) => {
+      const card = el("div", "ref");
+      const cat = REF_CATS.find(c => c[0] === r.cat);
+      card.innerHTML =
+        `<div class="thumb"><span class="tag">ref ${i + 1} &middot; ${cat[1]}</span>` +
+        `<button class="del" type="button" title="Remove">&times;</button>` +
+        `<img src="${r.url}" alt="${r.name}"></div><div class="body"><div class="cats"></div></div>`;
+      card.querySelector(".del").addEventListener("click", () => { state.refs.splice(i, 1); renderStep(); renderRail(); });
+      const cats = card.querySelector(".cats");
+      for (const [cid, clabel] of REF_CATS) {
+        const b = el("button", "chip", clabel);
+        b.type = "button";
+        b.setAttribute("aria-pressed", String(r.cat === cid));
+        b.addEventListener("click", () => { r.cat = cid; renderStep(); refreshPrompt(); });
+        cats.appendChild(b);
+      }
+      const body = card.querySelector(".body");
+
+      // The only thing pixels can't tell us: what the thing actually is.
+      const subj = Object.assign(document.createElement("input"), { type:"text", value:r.subject });
+      subj.placeholder = { character:"orc warchief", environment:"fortress courtyard",
+        product:"cordless drill", style:"key art", lighting:"lighting setup",
+        start:"opening frame" }[r.cat] || "what is it?";
+      subj.className = "refsubject";
+      subj.addEventListener("input", () => { r.subject = subj.value; paintPhrase(); refreshPrompt(); });
+      body.appendChild(el("span", "reflabel", "What is it?"));
+      const srow = el("div", "subjrow");
+      srow.appendChild(subj);
+      // Per-image re-describe, once the model is loaded.
+      if (hasKey()) {
+        const one = el("button", "vone", r.busy ? "…" : "&#9889;");
+        one.type = "button";
+        one.title = "Describe this image";
+        one.disabled = !!r.busy;
+        one.addEventListener("click", async () => {
+          one.disabled = true; one.textContent = "…";
+          await describeOne(r);
+          renderStep();
+        });
+        srow.appendChild(one);
+      }
+      body.appendChild(srow);
+      if (r.elements && r.elements.length) {
+        body.appendChild(el("span", "reflabel", "Elements in the scene"));
+        const ex = el("div", "autotags");
+        for (const t of r.elements) ex.appendChild(el("span", "eltag", t));
+        body.appendChild(ex);
+      }
+      if (r.detail) {
+        body.appendChild(el("span", "reflabel", "Description"));
+        body.appendChild(el("p", "refdetail", r.detail));
+      }
+
+      // Read off the image itself — no input required.
+      if (r.auto) {
+        body.appendChild(el("span", "reflabel", "Read from the image"));
+        const sw = el("div", "swatches");
+        for (const hex of r.auto.swatches) {
+          const s = el("span", "sw");
+          s.style.background = hex;
+          s.title = hex;
+          sw.appendChild(s);
+        }
+        body.appendChild(sw);
+        const auto = el("div", "autotags");
+        for (const t of [r.auto.temp, r.auto.tone, r.auto.contrast, r.auto.sat])
+          auto.appendChild(el("span", "autotag", t));
+        body.appendChild(auto);
+      }
+
+      // Live preview of the phrase this reference contributes.
+      const out = el("p", "refphrase");
+      const paintPhrase = () => { out.textContent = describeRef(r); };
+      paintPhrase();
+      body.appendChild(out);
+      grid.appendChild(card);
+    });
+    frag.appendChild(grid);
+  }
+  return frag;
+}
+
+function renderStep(entering = false) {
+  const s = STEPS[state.step];
+  stageEl.innerHTML = "";
+  const wrap = el("div", "step" + (entering ? " enter" : ""));
+  if (entering) wrap.addEventListener("animationend", () => wrap.classList.remove("enter"), { once:true });
+  wrap.appendChild(el("div", "step-num", `${pad(state.step + 1)} / ${s.name}`));
+  wrap.appendChild(el("h2", null, s.q));
+  wrap.appendChild(el("p", "lede", s.sub));
+  wrap.appendChild(el("div", "rule"));
+
+  if (s.id === "refs") wrap.appendChild(renderRefs());
+  else if (s.id === "preset") wrap.appendChild(renderPresets());
+  else wrap.appendChild(renderShots());
+
+  const nav = el("div", "nav");
+  const back = el("button", "btn btn-ghost", "&larr; Back");
+  back.type = "button"; back.disabled = state.step === 0;
+  back.addEventListener("click", () => goto(state.step - 1));
+  nav.appendChild(back);
+  nav.appendChild(el("span", "count", `${pad(state.step + 1)} / ${pad(STEPS.length)}`));
+  if (state.step < STEPS.length - 1) {
+    const next = el("button", "btn", (s.id === "refs" ? "Choose a preset" : "Next") + " &rarr;");
+    next.type = "button";
+    next.addEventListener("click", () => goto(state.step + 1));
+    nav.appendChild(next);
+  }
+  wrap.appendChild(nav);
+  stageEl.appendChild(wrap);
+  refreshPrompt();
+}
+
+function goto(i) {
+  state.step = Math.max(0, Math.min(STEPS.length - 1, i));
+  state.visited.add(state.step);
+  renderStep(true); renderRail();
+  window.scrollTo({ top:0, behavior:"smooth" });
+}
+
+/* ---- reference intake ---------------------------------------------------- */
+
+document.getElementById("filein").addEventListener("change", e => { addFiles(e.target.files); e.target.value = ""; });
+
+function addFiles(files) {
+  for (const file of [...files]) {
+    if (!file.type.startsWith("image/")) continue;
+    // Claim the slot up front. Reads and analyses finish out of order, and ref
+    // numbers are cited in the prompt, so they must follow the upload order.
+    const ref = { url:"", name:file.name, cat:"character", subject:"", auto:null, detail:"", elements:[], busy:false };
+    state.refs.push(ref);
+    const reader = new FileReader();
+    reader.onload = () => downscale(reader.result).then(url => {
+      ref.url = url;
+      renderStep(); renderRail();
+      analyseImage(url).then(auto => { ref.auto = auto; renderStep(); renderRail(); });
+    });
+    reader.readAsDataURL(file);
+  }
+}
+
+/** Thumbnails are all we ever show, so shrink on import to keep the DOM light. */
+function downscale(dataUrl, max = 512) {
+  return new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      const sc = Math.min(1, max / Math.max(img.width, img.height));
+      if (sc === 1) return res(dataUrl);
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      res(c.toDataURL("image/jpeg", .85));
+    };
+    img.onerror = () => res(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
+/* ===========================================================================
+ * 6. Prompt composition
+ * ======================================================================== */
+
+function sentence(s) {
+  s = String(s).trim();
+  if (!s) return "";
+  s = s[0].toUpperCase() + s.slice(1);
+  return /[.!?]$/.test(s) ? s : s + ".";
+}
+const clause = s => String(s).trim().replace(/[.]+$/, "");
+function joinList(a) {
+  if (a.length <= 1) return a[0] || "";
+  if (a.length === 2) return a[0] + " and " + a[1];
+  return a.slice(0, -1).join(", ") + " and " + a[a.length - 1];
+}
+const startRef = () => state.refs.findIndex(r => r.cat === "start");
+
+/** Camera + lighting sentences for one shot. */
+function shotBody(sh) {
+  const out = [];
+  const frame = [];
+  if (sh.framing) frame.push("Framed as " + clause(prose("framing", sh.framing)));
+  if (sh.angle) frame.push(clause(prose("angle", sh.angle)));
+  // Lens and depth of field read as one clause: "on a 50mm lens with shallow depth of field".
+  const optics = [];
+  if (sh.lens) optics.push(clause(prose("lens", sh.lens)));
+  if (sh.dof) optics.push(clause(prose("dof", sh.dof)));
+  if (optics.length) frame.push((sh.framing ? "shot on " : "on ") + optics.join(" with "));
+  // Without a framing choice the sentence has no subject, so supply one.
+  if (frame.length) out.push(sh.framing ? frame.join(", ") + "." : sentence("Captured " + frame.join(", ")));
+
+  if (sh.motion.length) {
+    const speed = sh.speed ? clause(prose("speed", sh.speed)) + " " : "";
+    const moves = sh.motion.map(id => clause(item("motion", id)[2]));
+    out.push(moves.length === 1
+      ? sentence("the camera " + speed + moves[0])
+      : sentence("the camera " + speed + moves[0] + ", then " + moves[1]));
+  }
+  if (sh.light) out.push(sentence("Lit by " + clause(prose("light", sh.light)) + (sh.temp ? ", " + clause(prose("temp", sh.temp)) : "")));
+  else if (sh.temp) out.push(sentence("The lighting is " + clause(prose("temp", sh.temp))));
+  return out.join(" ");
+}
+
+function buildProse() {
+  const paras = [];
+  const multi = state.shots.length > 1;
+
+  if (state.refs.length) {
+    paras.push("References:\n" + state.refs.map((r, i) => {
+      const cat = REF_CATS.find(c => c[0] === r.cat);
+      return `  ref ${i + 1} — ${cat[1]}: ${describeRef(r)}` +
+        (r.detail ? `\n      ${r.detail}` : "") +
+        (r.elements && r.elements.length ? `\n      in scene: ${r.elements.join(", ")}` : "");
+    }).join("\n"));
+    // Group by category, or three character refs read as three near-identical
+    // clauses ("the character to ref 1, the character to ref 2, …").
+    const bind = [];
+    for (const [cid, , role] of REF_CATS) {
+      if (cid === "start") continue;
+      const ns = state.refs.map((r, i) => r.cat === cid ? i + 1 : 0).filter(Boolean);
+      if (!ns.length) continue;
+      bind.push(ns.length === 1
+        ? `${role} to ref ${ns[0]}`
+        : `${role}s to refs ${joinList(ns.map(String))}`);
+    }
+    if (bind.length) paras.push(sentence("Match " + joinList(bind)));
+  }
+
+  const sr = startRef();
+  paras.push(state.refs.length
+    ? `Animate from the provided reference images${sr >= 0 ? `, opening on ref ${sr + 1}` : ""}. ` +
+      "Preserve the design, materials and colour of the references."
+    : "Animate from the provided reference image. Preserve its design, materials and colour.");
+
+  state.shots.forEach((sh, i) => {
+    const lead = [];
+    if (multi) lead.push(`Shot ${i + 1} (${sh.dur}s).`);
+    if (sh.scene.trim()) lead.push(sentence(sh.scene));
+    if (sh.action.trim()) lead.push(sentence(sh.action));
+    const body = shotBody(sh);
+    if (body) lead.push(body);
+    if (lead.length) paras.push(lead.join(" "));
+  });
+
+  // Runtime alone isn't worth a paragraph — only state the finish once the
+  // piece actually has something in it.
+  const described = state.shots.some(sh => sh.scene.trim() || sh.action.trim() || shotBody(sh)) ||
+    state.style || state.cadence || state.atmos.length;
+  if (described) {
+    const look = [];
+    if (state.atmos.length) look.push(sentence(joinList(state.atmos.map(id => clause(item("atmos", id)[2]))) + " throughout"));
+    const finish = [];
+    if (state.style) finish.push(clause(item("style", state.style)[2]));
+    if (state.cadence) finish.push(clause(item("cadence", state.cadence)[2]));
+    finish.push(multi
+      ? `${state.shots.length} shots running ${totalDur()} seconds in total`
+      : `approximately ${state.shots[0].dur} second${state.shots[0].dur > 1 ? "s" : ""}`);
+    look.push(sentence(finish.join(", ")));
+    paras.push(look.join(" "));
+  }
+
+  const trans = [];
+  const first = state.shots[0], last = state.shots[state.shots.length - 1];
+  if (first.transIn) trans.push(sentence("Opens with " + clause(prose("transIn", first.transIn))));
+  for (let i = 1; i < state.shots.length; i++) {
+    const t = state.shots[i].transIn;
+    // "with" rather than "on" — several fragments already carry their own "on".
+    // The trailing "in" reads as an opening ("a dissolve in"), wrong mid-cut.
+    if (t) trans.push(sentence(`Shot ${i} moves to shot ${i + 1} with ` +
+      clause(prose("transIn", t)).replace(/\s+in$/, "")));
+  }
+  if (last.transOut) trans.push(sentence("Ends with " + clause(prose("transOut", last.transOut))));
+  if (trans.length) paras.push(trans.join(" "));
+
+  return paras.join("\n\n");
+}
+
+function buildLabeled() {
+  const L = [];
+  if (state.refs.length) {
+    L.push("References:");
+    state.refs.forEach((r, i) => {
+      const cat = REF_CATS.find(c => c[0] === r.cat);
+      L.push(`  ref ${i + 1} — ${cat[1]}: ${describeRef(r)}`);
+      if (r.detail) L.push(`      ${r.detail}`);
+      if (r.elements && r.elements.length) L.push(`      in scene: ${r.elements.join(", ")}`);
+    });
+  }
+  L.push("Source: provided reference images" +
+    (startRef() >= 0 ? ` — open on ref ${startRef() + 1}` : "") +
+    " — preserve design, materials and colour");
+  L.push(`Shots: ${state.shots.length} (${state.shots.map(s => s.dur + "s").join(" + ")} = ${totalDur()}s)`);
+
+  const PER = [["scene","Scene"],["action","Action"],["framing","Shot"],["angle","Angle"],["lens","Lens"],
+    ["dof","Depth of field"],["motion","Camera"],["speed","Speed"],["light","Lighting"],["temp","Color"],
+    ["transIn","Transition in"],["transOut","Transition out"]];
+
+  state.shots.forEach((sh, i) => {
+    const lines = [];
+    for (const [f, key] of PER) {
+      if (f === "transOut" && i !== state.shots.length - 1) continue;
+      const v = sh[f];
+      let val;
+      if (FIELD[f].type) val = (v || "").trim();
+      else if (Array.isArray(v)) val = v.map(x => clause(item(f, x)[2])).join(", ");
+      else val = v ? clause(item(f, v)[2]) : "";
+      if (val) lines.push(`  ${f === "transIn" && i > 0 ? "Enters on" : key}: ${val}`);
+    }
+    if (lines.length) L.push("", `[Shot ${i + 1} — ${sh.dur}s]`, ...lines);
+  });
+
+  const tail = [];
+  if (state.style) tail.push("Style: " + clause(item("style", state.style)[2]));
+  if (state.cadence) tail.push("Cadence: " + clause(item("cadence", state.cadence)[2]));
+  if (state.atmos.length) tail.push("Atmosphere: " + state.atmos.map(a => clause(item("atmos", a)[2])).join(", "));
+  if (tail.length) L.push("", ...tail);
+  return L.join("\n");
+}
+
+const promptText = () => state.format === "prose" ? buildProse() : buildLabeled();
+
+async function copyPrompt(btn) {
+  const t = promptText();
+  if (!t.trim()) return;
+  await navigator.clipboard.writeText(t);
+  const old = btn.textContent;
+  btn.textContent = "Copied";
+  setTimeout(() => { btn.textContent = old; }, 1200);
+}
+
+renderStep(true); renderRail();
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+.DS_Store
+
+# Keep a copy with an API key baked in out of version control.
+index.local.html
+*.local.html
