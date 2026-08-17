@@ -1803,23 +1803,31 @@ const VISION_PROMPT =
   "detail: one sentence, 25 words maximum, on materials, palette and mood. " +
   "Describe only what is visible; never mention that this is an image or a render.";
 
-const vision = { status:"idle", note:"", done:0, of:0, provider:"gemini", showKey:false };
+const vision = { status:"idle", note:"", done:0, of:0, provider:"gemini" };
 
 const provider = () => PROVIDERS[vision.provider];
 
-/** True when this provider is running on the key baked into the file rather
- *  than one the visitor typed. That is the seamless case: nothing to set up,
- *  so the key controls stay folded away behind a link. */
-function usingBuiltIn(pid = vision.provider) {
-  const p = PROVIDERS[pid];
-  let stored = "";
-  try { stored = localStorage.getItem(p.ls) || ""; } catch { /* private browsing */ }
-  return !stored.trim() && (p.fallback() || "").trim().length > 0;
-}
+/** True when a key ships in the file for this provider. Then it is *the* key:
+ *  it outranks anything in localStorage and there is no key UI at all. The
+ *  panel only asks for one when the constant was left blank. */
+const builtIn = (pid = vision.provider) => (PROVIDERS[pid].fallback() || "").trim();
+const usingBuiltIn = (pid = vision.provider) => builtIn(pid).length > 0;
+
+/* A key stored by an earlier visit would otherwise shadow the built-in one
+ * forever — the browser that typed it keeps being asked for it long after the
+ * file started shipping its own. Clear those once, on load. */
+(function dropStaleKeys() {
+  for (const pid of Object.keys(PROVIDERS)) {
+    if (!usingBuiltIn(pid)) continue;
+    try { localStorage.removeItem(PROVIDERS[pid].ls); } catch { /* private browsing */ }
+  }
+})();
+
 const getKey = (pid = vision.provider) => {
   const p = PROVIDERS[pid];
-  try { return localStorage.getItem(p.ls) || p.fallback() || ""; }
-  catch { return p.fallback() || ""; }
+  if (usingBuiltIn(pid)) return builtIn(pid);
+  try { return localStorage.getItem(p.ls) || ""; }
+  catch { return ""; }
 };
 const setKey = (k, pid = vision.provider) => {
   try {
@@ -2602,10 +2610,10 @@ function visionPanel() {
   };
   const P = provider();
 
-  /* Seamless path: a key ships with the file, so there is nothing to ask for.
-   * Say what will happen, offer the early look, and keep the key machinery
-   * behind a link for anyone who wants to spend their own quota instead. */
-  if (usingBuiltIn() && !vision.showKey) {
+  /* A key ships with the file, so there is nothing to ask for and nothing to
+   * choose. No key field, no provider switch, no links — just what is about to
+   * happen and a button to see the names early. */
+  if (usingBuiltIn()) {
     const row = el("div", "vhead");
     row.appendChild(el("span", "vlabel", "Scene reading &mdash; ready"));
     if (vision.status === "working") row.appendChild(el("span", "vpct", `${vision.done} of ${vision.of}`));
@@ -2618,17 +2626,10 @@ function visionPanel() {
     box.appendChild(row);
 
     box.appendChild(el("p", "hint",
-      `Your images are read for you &mdash; pick a preset on the next step and ${P.label} names each ` +
-      `reference and writes the shot list from them. Nothing to set up, no key to paste. ` +
-      `Describe now if you'd rather check the names before choosing.`));
+      `Your images are read for you. Pick a preset on the next step and it names every reference ` +
+      `and writes the shot list from them &mdash; nothing to set up. Describe now if you'd rather ` +
+      `see the names before choosing.`));
     if (vision.note) box.appendChild(el("p", "hint", `<span class="vwarn">${vision.note}</span>`));
-
-    const own = el("button", "vclear", "Use my own API key instead");
-    own.type = "button";
-    own.addEventListener("click", () => { vision.showKey = true; renderStep(); });
-    const wrap = el("p", "hint");
-    wrap.appendChild(own);
-    box.appendChild(wrap);
     return box;
   }
 
@@ -2680,28 +2681,15 @@ function visionPanel() {
         `pick next writes your shot list from these images; without one it expands from its own wording. ` +
         `A ChatGPT key can't be used from a page like this: OpenAI's API sends no CORS headers, so the browser blocks the call.`));
   if (vision.note) box.appendChild(el("p", "hint", `<span class="vwarn">${vision.note}</span>`));
-  // With a key baked into the file, clearing a typed one falls back to it
-  // rather than switching the feature off — so say that, not "forget".
-  const builtInAvailable = (P.fallback() || "").trim().length > 0;
-  if (hasKey() || builtInAvailable) {
+  // Only reachable with the key constants left blank; a built-in key returns
+  // the simple panel above and never gets here.
+  if (hasKey()) {
+    const forget = el("button", "vclear", `Forget ${P.label} key`);
+    forget.type = "button";
+    forget.addEventListener("click", () => { setKey(""); vision.note = ""; renderStep(); });
     const wrap = el("p", "hint");
-    if (!usingBuiltIn() && hasKey()) {
-      const forget = el("button", "vclear",
-        builtInAvailable ? `Go back to the built-in ${P.label} key` : `Forget ${P.label} key`);
-      forget.type = "button";
-      forget.addEventListener("click", () => {
-        setKey(""); vision.note = "";
-        if (builtInAvailable) vision.showKey = false;
-        renderStep();
-      });
-      wrap.appendChild(forget);
-    } else if (builtInAvailable) {
-      const hide = el("button", "vclear", "Never mind &mdash; use the built-in key");
-      hide.type = "button";
-      hide.addEventListener("click", () => { vision.showKey = false; vision.note = ""; renderStep(); });
-      wrap.appendChild(hide);
-    }
-    if (wrap.children.length) box.appendChild(wrap);
+    wrap.appendChild(forget);
+    box.appendChild(wrap);
   }
   return box;
 }

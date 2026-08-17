@@ -65,9 +65,8 @@ and durations are scaled to fit the runtime cap after expansion.
 
 ## The API key
 
-**A free-tier Gemini key ships in `index.html`, so there is nothing to set up.** Open the
-page and it reads your images. The key panel stays folded away behind *Use my own API key
-instead* on the References step.
+**A free-tier Gemini key ships in `index.html`, so there is nothing to set up and nothing
+to ask for.** Open the page and it reads your images. No key prompt appears at all.
 
 > **That key is public and disposable.** It is plain text in a file served to every
 > visitor, readable in devtools by anyone who opens the page. It carries no billing
@@ -76,8 +75,9 @@ instead* on the References step.
 > [aistudio.google.com/apikey](https://aistudio.google.com/apikey) and replace the
 > constant — nothing else depends on it. **Never put a key with billing attached there.**
 
-Paste your own key to spend your own quota instead; a typed key always wins over the
-built-in one, and *Go back to the built-in key* restores it.
+While a key is in the file it is *the* key: it outranks anything a browser saved on an
+earlier visit, and there is no key field, provider switch or "use your own" link anywhere
+in the UI. To use a different one, change the constant — see below.
 
 **Gemini** (free tier, no billing setup): [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
 Uses `gemini-3.5-flash-lite`, falling back to `gemini-flash-lite-latest` then
@@ -111,11 +111,10 @@ Uses `claude-haiku-4-5-20251001`.
 blocks the request before it leaves — from `file://` and from a real origin alike. It
 would need a proxy server, which defeats the point of a single file.
 
-A typed key is kept in that browser's `localStorage`, one per provider. Images leave the
-browser at two moments only: when you press Describe, and when you pick a preset and the
-model writes the shot list. Nothing is sent otherwise.
+Images leave the browser at two moments only: when you press Describe, and when you pick a
+preset and the model writes the shot list. Nothing is sent otherwise.
 
-### Changing the built-in key
+### Changing the key
 
 Near the top of the script in `index.html`:
 
@@ -124,8 +123,9 @@ const DEFAULT_GEMINI_KEY = "AIza…";
 const DEFAULT_CLAUDE_KEY = "";
 ```
 
-Fill one in and it is used on every load; blank it and the app asks for a key instead.
-A key entered in the app overrides the constant.
+Whichever is filled in is used on every load, and the key UI stays hidden. Blank them both
+and the app falls back to asking for a key in the References panel — provider switch, key
+field, "Forget key" and all — storing it in that browser's `localStorage`.
 
 > Anything on those lines is public — see the warning above. `.gitignore` excludes
 > `index.local.html` if you'd rather keep a differently-keyed copy alongside this one.
