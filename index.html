@@ -494,6 +494,25 @@
     letter-spacing:.12em; text-transform:uppercase; color:var(--steel);
   }
   .rebuild:hover { border-color:var(--accent); color:var(--accent); }
+  .rebuild[disabled] { opacity:.45; cursor:default; }
+  .rebuild[disabled]:hover { border-color:var(--stone); color:var(--steel); }
+
+  /* The shot list is written by a model on a network round-trip, so the wait
+   * gets a real banner rather than a silently empty storyboard. */
+  .directing {
+    display:flex; align-items:center; justify-content:center; gap:.6rem;
+    max-width:760px; margin:0 auto 1.25rem; width:100%;
+    border:1px solid var(--accent); border-radius:6px; padding:.65rem;
+    font-family:var(--mono); font-size:.6rem; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--accent);
+  }
+  .directing .dot {
+    width:.5rem; height:.5rem; border-radius:50%; background:currentColor;
+    animation:dpulse 1s ease-in-out infinite;
+  }
+  @keyframes dpulse { 0%,100%{opacity:.25} 50%{opacity:1} }
+  .dfail { border-color:var(--stone); color:var(--body); text-transform:none;
+    font-family:var(--sans); font-size:.78rem; letter-spacing:0; font-style:italic; }
 
   /* ---- nav ---- */
   .nav {
@@ -1226,9 +1245,11 @@ const PRESETS = [
         scene:"{this} floating in a dark void, components separating along their assembly axes",
         action:"the parts drift outward and hold as an exploded view, then draw back together" }] },
 
+  /* `manual` opts this one out of AI direction — writing it yourself is the
+   * entire point of picking it, references or no references. */
   { id:"blank", group:"Blank", name:"Start from scratch", pv:null,
     sum:"One empty shot. Write everything yourself.",
-    style:null, cadence:null, atmos:[], endWith:null,
+    style:null, cadence:null, atmos:[], endWith:null, manual:true,
     recipe:[{ role:"once", dur:5 }] },
 ];
 
@@ -1289,11 +1310,11 @@ const SHOT_FIELDS = ["scene","action","framing","angle","lens","dof","motion","s
  * progressive disclosure rather than a page each. */
 const STEPS = [
   { id:"refs", name:"References", q:"What are you working with?",
-    sub:"Drop in the images you'll feed the model, and say what each one is for. The next step writes them into the prompt for you. Skip it if you're working from text alone." },
-  { id:"preset", name:"Preset", q:"Pick a starting point",
-    sub:"Every preset arrives fully written — shot list, camera, lighting, timing and the scene description for each beat, with your references woven in." },
+    sub:"Drop in the images you'll feed the model, and say what each one is for. Add an API key here and the next step reads them for you. Skip it all if you're working from text alone." },
+  { id:"preset", name:"Preset", q:"What kind of animation?",
+    sub:"Pick the shape of the piece. With a key, the model then looks at your references and writes the shot list against them — subjects, framing, lighting and pacing. Without one, the preset expands on its own." },
   { id:"shots", name:"Shots", q:"Your shot list",
-    sub:"Click a shot to edit it. The prompt at the bottom updates as you go." },
+    sub:"Written for your references, and yours to change. Click a shot to edit it; the prompt at the bottom updates as you go." },
 ];
 
 /** Per-shot fields shown as settings chips, in the order they read. */
@@ -1700,15 +1721,18 @@ const PROVIDERS = {
     // flash-lite is the cheap fast one; the stable id is the retry if the
     // rolling alias isn't live on an account.
     models: ["gemini-flash-lite-latest", "gemini-2.0-flash"],
-    request(model, key, media, b64, prompt) {
+    request(model, key, images, prompt, maxTokens, temp) {
       return {
         url: `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`,
         init: {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
-            contents: [{ parts: [{ inline_data:{ mime_type:media, data:b64 } }, { text:prompt }] }],
-            generationConfig: { temperature:0.2, maxOutputTokens:400, responseMimeType:"application/json" },
+            contents: [{ parts: [
+              ...images.map(im => ({ inline_data:{ mime_type:im.media, data:im.b64 } })),
+              { text:prompt },
+            ]}],
+            generationConfig: { temperature:temp, maxOutputTokens:maxTokens, responseMimeType:"application/json" },
           }),
         },
       };
@@ -1730,7 +1754,7 @@ const PROVIDERS = {
     ls: "omni-animate-claude-key",
     fallback: () => DEFAULT_CLAUDE_KEY,
     models: ["claude-haiku-4-5-20251001"],
-    request(model, key, media, b64, prompt) {
+    request(model, key, images, prompt, maxTokens, temp) {
       return {
         url: "https://api.anthropic.com/v1/messages",
         init: {
@@ -1743,9 +1767,9 @@ const PROVIDERS = {
             "anthropic-dangerous-direct-browser-access": "true",
           },
           body: JSON.stringify({
-            model, max_tokens: 400,
+            model, max_tokens: maxTokens, temperature: temp,
             messages: [{ role:"user", content:[
-              { type:"image", source:{ type:"base64", media_type:media, data:b64 } },
+              ...images.map(im => ({ type:"image", source:{ type:"base64", media_type:im.media, data:im.b64 } })),
               { type:"text", text:prompt },
             ]}],
           }),
@@ -1802,17 +1826,22 @@ function parseReply(text) {
   try { return JSON.parse(s.slice(a, b + 1)); } catch { return null; }
 }
 
-/** Describe one image. Returns {subject, elements, detail} or null. */
-async function captionImage(url) {
+/**
+ * One JSON call to the current provider, with N images attached. Returns the
+ * parsed object or null, leaving the reason in `vision.note` either way.
+ * Both jobs — captioning one image and directing a whole shot list — are the
+ * same round trip, so the transport, the model retry and the error wording
+ * live here once.
+ */
+async function callVision(images, prompt, maxTokens = 400, temp = 0.2) {
   const P = provider();
   if (!hasKey()) { vision.note = `Add a ${P.label} API key first.`; return null; }
-  const parts = dataUrlParts(url);
-  if (!parts) { vision.note = "That image couldn't be read."; return null; }
+  if (!images.length) { vision.note = "No readable images to send."; return null; }
   const key = getKey().trim();
 
   let lastNote = "";
   for (const model of P.models) {
-    const { url:endpoint, init } = P.request(model, key, parts.media, parts.b64, VISION_PROMPT);
+    const { url:endpoint, init } = P.request(model, key, images, prompt, maxTokens, temp);
     let r;
     try { r = await fetch(endpoint, init); }
     catch { vision.note = "Couldn't reach the API — check your connection."; return null; }
@@ -1832,16 +1861,26 @@ async function captionImage(url) {
     let j;
     try { j = await r.json(); } catch { vision.note = "Unreadable reply from the API."; return null; }
     const got = parseReply(P.text(j));
-    if (!got || !got.subject) { vision.note = "The model didn't return a usable description."; return null; }
+    if (!got) { vision.note = "The model didn't return usable JSON."; return null; }
     vision.note = "";
-    return {
-      subject: tidySubject(got.subject),
-      elements: tidyElements(got.elements),
-      detail: tidyDetail(got.detail),
-    };
+    return got;
   }
   vision.note = lastNote || "No usable model for this key.";
   return null;
+}
+
+/** Describe one image. Returns {subject, elements, detail} or null. */
+async function captionImage(url) {
+  const parts = dataUrlParts(url);
+  if (!parts) { vision.note = "That image couldn't be read."; return null; }
+  const got = await callVision([parts], VISION_PROMPT);
+  if (!got) return null;
+  if (!got.subject) { vision.note = "The model didn't return a usable description."; return null; }
+  return {
+    subject: tidySubject(got.subject),
+    elements: tidyElements(got.elements),
+    detail: tidyDetail(got.detail),
+  };
 }
 
 /** Guards, in case a model slips in an article or a preamble anyway. */
@@ -1919,6 +1958,179 @@ function applyPreset(p) {
 
 const allItems = f => f.groups ? f.groups.flatMap(g => g.items) : f.items;
 const item = (fieldId, id) => allItems(FIELD[fieldId]).find(i => i[0] === id);
+
+/* ---- AI direction -------------------------------------------------------
+ * A preset knows the shape of a sequence but not what you uploaded. With a
+ * key, picking one sends every reference in a single call and the model writes
+ * the shot list against those particular images — naming subjects, choosing
+ * framing and light, pacing the beats. Without a key, or if the call fails,
+ * the preset expands on its own exactly as it always did.
+ */
+
+/** Every per-shot field the model is allowed to set, and its legal ids. */
+const DIRECTABLE = ["framing","angle","lens","dof","motion","speed","light","temp","transIn","transOut"];
+const fieldIds = id => allItems(FIELD[id]).map(i => i[0]);
+
+/**
+ * Coerce a model-supplied value to a legal id for that field, or null.
+ * Two coercions are deliberate, because both are ordinary ways for a model to
+ * name a value it got right: a JSON number for the numeric ids (lens "85"),
+ * and a single-element array where a bare string was asked for. Anything else
+ * that isn't an exact id is dropped, and the preset's own value stands.
+ */
+function legalId(fieldId, v) {
+  const one = Array.isArray(v) ? (v.length === 1 ? v[0] : null) : v;
+  if (one == null || typeof one === "object") return null;
+  const s = String(one).trim();
+  return fieldIds(fieldId).includes(s) ? s : null;
+}
+
+/** The instruction sent with the images: what to build, and the exact
+ *  vocabulary it may use for every settings field. */
+function directorPrompt(p) {
+  const refLines = state.refs.map((r, i) => {
+    const cat = (REF_CATS.find(c => c[0] === r.cat) || [, "reference"])[1];
+    const named = r.subject ? `, which the user named "${r.subject}"` : "";
+    const reads = r.auto ? `, reading as ${autoPhrase(r.auto)}` : "";
+    return `Image ${i + 1} — tagged "${cat}"${named}${reads}.`;
+  }).join("\n");
+
+  const beats = p.recipe.map((b, i) =>
+    `${i + 1}. ${b.role === "per" ? `one beat for every "${b.cat}" reference` : "once"}` +
+    `${b.dur ? `, about ${b.dur}s` : ""} — ${b.scene || "open beat, wording is yours to choose"}`).join("\n");
+
+  return [
+    "You are directing a short image-to-video sequence. The reference images are attached in order, " +
+    "and a preset below describes the intended shape of the piece. Write the shot list.",
+    "",
+    `PRESET: ${p.name} — ${p.sum}`,
+    "Its intended beats:",
+    beats,
+    "",
+    state.refs.length
+      ? `THE ATTACHED REFERENCES, in order:\n${refLines}`
+      : "No references were uploaded. Write the sequence from the preset alone.",
+    "",
+    `CONSTRAINTS: between 2 and ${MAX_SHOTS} shots. Every duration is a whole number of seconds, ` +
+    `at least ${MIN_SHOT}, and they must add up to ${MAX_TOTAL} or less.`,
+    "",
+    "Reply with nothing but JSON in this exact shape:",
+    '{"refs":[{"subject":"...","elements":["..."],"detail":"..."}],' +
+    '"shots":[{"dur":4,"scene":"...","action":"...","framing":"ws","angle":"low","lens":"35",' +
+    '"dof":"deep","motion":["dolly-in"],"speed":"slow","light":"rim","temp":"cool",' +
+    '"transIn":"fade-black","transOut":"cut"}]}',
+    "",
+    "refs: one entry per attached image, in the same order, even if you were given a name already. " +
+    "subject is 2-6 words naming the main thing, no leading article. elements is 3-6 short phrases " +
+    "listing what is actually visible. detail is one sentence, 25 words maximum, on materials, " +
+    "palette and mood. Describe only what you can see; never mention that this is an image or a render.",
+    "",
+    "shots: the sequence itself. `scene` says what is in frame — refer to the reference subjects in " +
+    'the words you gave them, and write "(ref N)" directly after a subject drawn from image N so the ' +
+    "video model binds the words to that image. `action` is one clause on what moves during the shot. " +
+    "Follow the preset's intent, but write for these particular references rather than a generic version.",
+    "",
+    "Every field below must be one of its listed ids, spelled exactly, or left out. " +
+    `motion is an array of at most ${FIELD.motion.max} ids.`,
+    DIRECTABLE.map(id => `${id}: ${fieldIds(id).join(", ")}`).join("\n"),
+  ].join("\n");
+}
+
+/**
+ * Lay a directed shot list over the preset's own expansion. Anything the model
+ * omits — or gets wrong — keeps the preset's crafted value, so a partial or
+ * sloppy reply still lands on a usable list instead of a hollow one.
+ */
+function mergeDirected(p, directed) {
+  const base = expandPreset(p);
+  if (!Array.isArray(directed) || !directed.length) return base;
+  const shots = directed.slice(0, MAX_SHOTS).map((d, i) => {
+    // Past the end of the preset's own beats, the last one is the template.
+    const b = base[Math.min(i, base.length - 1)] || newShot(3);
+    const s = Object.assign(newShot(b.dur), b, { motion:[...(b.motion || [])] });
+    if (d && typeof d.scene === "string" && d.scene.trim()) s.scene = d.scene.trim();
+    if (d && typeof d.action === "string" && d.action.trim()) s.action = d.action.trim();
+    for (const f of DIRECTABLE) {
+      if (f === "motion") continue;
+      const v = legalId(f, d && d[f]);
+      if (v) s[f] = v;
+    }
+    if (d && Array.isArray(d.motion)) {
+      const m = d.motion.map(x => legalId("motion", x)).filter(Boolean).slice(0, FIELD.motion.max);
+      if (m.length) s.motion = m;
+    }
+    const n = Math.round(Number(d && d.dur));
+    if (n >= MIN_SHOT && n <= MAX_TOTAL) s.dur = n;
+    return s;
+  });
+  // Only the last shot ends the piece; a stray transOut mid-list reads as one.
+  shots.forEach((s, i) => { if (i < shots.length - 1 && s.transOut === "hold") s.transOut = null; });
+  return shots;
+}
+
+/* Only the newest direction may write to state. Picking a second preset while
+ * the first call is still out would otherwise let the slower reply land last
+ * and overwrite the list you actually asked for. */
+let directRun = 0;
+
+/** Read every reference against the chosen preset and write the shot list.
+ *  Returns true if the model's list was used. */
+async function directFromPreset(p) {
+  const run = ++directRun;
+  const images = state.refs.map(r => dataUrlParts(r.url)).filter(Boolean);
+  const got = await callVision(images, directorPrompt(p), 4000, 0.4);
+  if (run !== directRun) return null;       // superseded while we were waiting
+  if (!got) return false;
+
+  // Names first: the shot text cites references by name, and expandPreset's
+  // fallbacks read from these too.
+  if (Array.isArray(got.refs)) {
+    got.refs.slice(0, state.refs.length).forEach((d, i) => {
+      const r = state.refs[i];
+      if (!r || !d) return;
+      if (d.subject) r.subject = tidySubject(d.subject);
+      if (d.detail) r.detail = tidyDetail(d.detail);
+      if (Array.isArray(d.elements)) r.elements = tidyElements(d.elements);
+    });
+  }
+
+  if (!Array.isArray(got.shots) || !got.shots.length) {
+    vision.note = "The model didn't return a shot list — the preset's own version is below.";
+    return false;
+  }
+  state.shots = mergeDirected(p, got.shots);
+  state.activeShot = 0; state.selectedShot = 0; state.openField = null;
+  rebalance();
+  return true;
+}
+
+/** Direct against `p`, showing the wait and whatever came of it. A run that was
+ *  superseded by a newer pick returns null and leaves the display to that one. */
+async function runDirector(p) {
+  vision.status = "directing";
+  vision.note = "";
+  vision.of = state.refs.length;
+  renderStep();
+  const ok = await directFromPreset(p);
+  if (ok === null) return;                  // a newer run owns the display now
+  vision.status = ok ? "idle" : "failed";
+  renderStep(); renderRail();
+}
+
+/** Whether the model can write the list: it needs a key, something to look at,
+ *  and a preset that wants writing at all. */
+const canDirect = p => hasKey() && state.refs.length > 0 && !!p && !p.manual;
+
+/** Picking a preset lands you on the shot list. With a key and at least one
+ *  reference, the model writes that list first; otherwise the preset expands
+ *  on its own and you edit from there. */
+async function choosePreset(p) {
+  applyPreset(p);
+  state.selectedShot = 0;
+  goto(STEPS.findIndex(s => s.id === "shots"));
+  if (!canDirect(p)) return;
+  await runDirector(p);
+}
 const isShotField = id => SHOT_FIELDS.includes(id);
 const shot = () => state.shots[state.activeShot];
 const get = id => isShotField(id) ? shot()[id] : state[id];
@@ -2139,9 +2351,29 @@ function renderShots() {
   head.appendChild(el("span", "runval" + (spare === 0 ? " full" : ""), `${total}s / ${MAX_TOTAL}s`));
   frag.appendChild(head);
 
+  const p = PRESETS.find(x => x.id === state.preset);
+
+  // The model writes this list on a network round trip; say so while it runs,
+  // and say what happened if it didn't work.
+  if (vision.status === "directing") {
+    frag.appendChild(el("div", "directing",
+      `<span class="dot"></span>Reading ${vision.of} reference${vision.of === 1 ? "" : "s"} &mdash; writing the shot list`));
+  } else if (vision.status === "failed" && vision.note) {
+    frag.appendChild(el("div", "directing dfail", vision.note));
+  }
+
+  // Re-run the director: after retagging references, adding an image, or just
+  // to see a different take on the same preset.
+  if (canDirect(p) && vision.status !== "directing") {
+    const again = el("button", "rebuild",
+      `Rewrite this shot list from the references with ${provider().label}`);
+    again.type = "button";
+    again.addEventListener("click", () => runDirector(p));
+    frag.appendChild(again);
+  }
+
   // References added after the preset was chosen aren't in the list until it
   // is expanded again.
-  const p = PRESETS.find(x => x.id === state.preset);
   if (p && p.recipe.some(b => b.role === "per")) {
     const n = Math.min(MAX_SHOTS, p.recipe.filter(b => b.role === "per")
       .reduce((a, b) => a + Math.max(1, state.refs.filter(r => r.cat === b.cat).length), 0)
@@ -2332,7 +2564,7 @@ function renderPresets() {
         `<span class="txt"><h4>${p.name}</h4><p>${p.sum}</p>` +
         `<span class="beats">${beats}</span>` +
         `<span class="meta">${shots.length} shot${shots.length > 1 ? "s" : ""} &middot; ${total}s total</span></span>`;
-      b.addEventListener("click", () => { applyPreset(p); state.selectedShot = 0; goto(state.step + 1); });
+      b.addEventListener("click", () => choosePreset(p));
       grid.appendChild(b);
     }
     f.appendChild(grid);
@@ -2404,8 +2636,11 @@ function visionPanel() {
   box.appendChild(el("p", "hint",
     hasKey()
       ? `Key saved in this browser. Uses <code>${P.models[0]}</code>. ` +
-        `Names each image and lists what's in the scene. Images are sent to ${P.label} only when you press Describe.`
-      : `Paste a ${P.label} key &mdash; ${P.hint}. Stored in this browser only. ` +
+        `Naming your images here is optional &mdash; whichever preset you pick next reads them all anyway ` +
+        `and writes the shot list from them. Describe now if you'd rather check the names first. ` +
+        `Images are sent to ${P.label} only when you press Describe, or when you pick a preset.`
+      : `Paste a ${P.label} key &mdash; ${P.hint}. Stored in this browser only. With one, the preset you ` +
+        `pick next writes your shot list from these images; without one it expands from its own wording. ` +
         `A ChatGPT key can't be used from a page like this: OpenAI's API sends no CORS headers, so the browser blocks the call.`));
   if (vision.note) box.appendChild(el("p", "hint", `<span class="vwarn">${vision.note}</span>`));
   if (hasKey()) {

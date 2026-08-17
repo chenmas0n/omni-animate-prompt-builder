@@ -11,14 +11,33 @@ Open `index.html`. That's the whole install.
 Three steps:
 
 1. **References** — drag in the images you'll feed the model. Tag each one
-   (character, environment, product, style, lighting, start frame) and name it. Palette,
-   warmth, tone, contrast and saturation are read off the pixels automatically. Optionally
-   add an API key and let a vision model name each image and list what's in the scene.
-2. **Preset** — 30 starting points across 10 collapsible groups. Each one arrives fully
-   written: shot list, framing, lens, camera move, lighting, timing, and the scene
-   description for every beat, with your references woven into the text.
-3. **Shots** — a storyboard grid. Click any shot to edit its text or settings. The prompt
-   sits at the bottom and updates as you type.
+   (character, environment, product, style, lighting, start frame). Palette, warmth, tone,
+   contrast and saturation are read off the pixels automatically. Add an API key here and
+   step 2 does the rest; naming the images yourself is optional.
+2. **Preset** — pick what kind of animation you want. 30 starting points across 10
+   collapsible groups.
+3. **Shots** — the shot list, already written, as a storyboard grid. Click any shot to
+   edit its text or settings. The prompt sits at the bottom and updates as you type.
+
+## How step 2 fills in step 3
+
+With an API key, picking a preset sends **every reference in one call** along with that
+preset's intent. The model looks at your actual images and writes the sequence against
+them — naming each subject, then choosing framing, angle, lens, depth of field, camera
+move, lighting, colour temperature, transitions and per-shot timing, and writing the scene
+and action text for every beat. Subjects are cited as `(ref N)` so the video model binds
+the words back to the right image. You land on step 3 with a finished list to fine-tune,
+and a **Rewrite this shot list** button for another take.
+
+Whatever the model sends back is checked against the app's own vocabulary before it is
+used. A setting it invents, misspells or leaves out falls back to the preset's crafted
+value rather than emptying the field, durations are re-fitted to the runtime cap, and a
+reply with no usable shot list leaves the preset's own expansion in place. So a bad
+response degrades to the old behaviour instead of a broken storyboard.
+
+**Without a key the tool works exactly as it did before** — presets expand from their own
+wording and your reference tags, and you write from there. The key only ever changes who
+drafts the first version.
 
 Total runtime is capped at 15 seconds; shot lengths draw from that shared budget.
 
@@ -41,10 +60,12 @@ Presets are recipes, not fixed lists. A beat marked `per` repeats for every matc
 reference you uploaded — three character refs build three reveal beats, one builds one —
 and durations are scaled to fit the runtime cap after expansion.
 
-## Optional: automatic image description
+## The API key
 
-Without a key the tool still reads palette and tone from each image locally; you name the
-images yourself. With a key, a vision model names each one and lists the scene elements.
+Without a key the tool still reads palette and tone from each image locally, and presets
+expand from their own wording; you name the images and write the shots yourself. With a
+key, the model names each reference and writes the shot list from them when you pick a
+preset. It is the same key either way, stored in this browser only.
 
 **Gemini** (recommended, free): get a key at
 [aistudio.google.com/apikey](https://aistudio.google.com/apikey). No billing setup.
