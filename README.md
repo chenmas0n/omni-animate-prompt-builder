@@ -73,9 +73,16 @@ References panel asks each visitor for their own key instead and everything stil
 
 > **A bundled key is public.** It reaches every visitor's browser, so anyone who opens
 > devtools can read it. It is stored encoded (see below), which is *not* security — it
-> only stops automated scanners. The protections that count are that the key **carries no
-> billing account** (worst case is an exhausted free quota, never a charge) and is
-> **restricted to this site's origin**. Never bundle a key with billing attached.
+> only stops automated scanners. What makes this acceptable is that the key is barely
+> worth stealing: it **carries no billing account**, so the worst case is an exhausted
+> free quota rather than a charge, and it can be rotated in one click. Never bundle a key
+> with billing attached.
+>
+> An origin restriction would be the obvious extra control and **is not available**:
+> Google now requires Gemini API keys to be bound to a service account, and
+> service-account-bound keys reject Website/IP restrictions outright — the console says
+> *"This option is not available for API keys authenticated through a service account."*
+> Nothing to configure; the option isn't offered.
 
 ### Why the key is encoded
 
@@ -126,13 +133,9 @@ preset and the model writes the shot list. Nothing is sent otherwise.
 ### Replacing the bundled key
 
 1. Mint a key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey) on a
-   project with **no billing account**.
-2. **Before publishing it**, open
-   [console.cloud.google.com/apis/credentials](https://console.cloud.google.com/apis/credentials),
-   open the key, and set *Application restrictions → Websites* to the site that serves the
-   page, e.g. `chenmas0n.github.io/*`. Referrers are spoofable, so this is a speed bump
-   rather than a wall — but it makes an extracted key awkward to spend elsewhere.
-3. Encode it. Paste this into any browser console — nothing to install:
+   project with **no billing account**. Both current formats work — the classic `AIza…`
+   and the newer service-account-bound `AQ.…`.
+2. Encode it. Paste this into any browser console — nothing to install:
 
    ```js
    (k => btoa([...k].map((c, i) =>
@@ -140,7 +143,7 @@ preset and the model writes the shot list. Nothing is sent otherwise.
    ).join("")))("AIza…your key here…")
    ```
 
-4. Put the resulting string in `GEMINI_KEY_BLOB` near the top of the script in
+3. Put the resulting string in `GEMINI_KEY_BLOB` near the top of the script in
    `index.html`. `CLAUDE_KEY_BLOB` works the same way.
 
 Leave a blob empty and that provider falls back to asking the visitor for a key, stored in

@@ -1709,17 +1709,24 @@ const preview = (fieldId, itemId) => P[fieldId] ? P[fieldId](itemId) : "";
  *
  * WHAT THIS IS NOT: security. The decoder is three lines below the data, so
  * anyone who opens devtools can recover the key in seconds. It buys exactly
- * one thing — surviving the automated sweep. The controls that actually
- * matter are on Google's side, and both are required for the key below:
+ * one thing — surviving the automated sweep.
  *
- *   1. NO BILLING ACCOUNT. Worst case is then an exhausted free quota, never
- *      a charge.
- *   2. An HTTP-referrer restriction pinned to this site, set in
- *      console.cloud.google.com/apis/credentials BEFORE the key is published.
- *      An extracted key is then hard to spend anywhere else.
+ * So the real protection is that the key is worth almost nothing to steal:
  *
- * TO REPLACE IT: mint a key at aistudio.google.com/apikey, restrict it as
- * above, then encode it — paste this into any browser console, no install:
+ *   1. NO BILLING ACCOUNT on its project. Worst case is an exhausted free
+ *      quota, never a charge. This is the one that matters — keep it true.
+ *   2. Rotate it the moment the quota looks wrong. One button, and nothing
+ *      here depends on which key it is.
+ *
+ * An origin restriction would be the obvious third control, and it is not
+ * available: Google now requires Gemini API keys to be bound to a service
+ * account, and service-account-bound keys reject Website/IP restrictions
+ * ("This option is not available for API keys authenticated through a service
+ * account"). Nothing to configure — the option simply isn't offered.
+ *
+ * TO REPLACE IT: mint a key at aistudio.google.com/apikey on a project with
+ * no billing, then encode it — paste this into any browser console, no
+ * install:
  *
  *   (k => btoa([...k].map((c, i) =>
  *     String.fromCharCode(c.charCodeAt(0) ^ "omni-animate".charCodeAt(i % 12))
@@ -1730,7 +1737,7 @@ const preview = (fieldId, itemId) => P[fieldId] ? P[fieldId](itemId) : "";
  * it just stops being zero-setup.
  * ------------------------------------------------------------------------- */
 const KEY_SALT = "omni-animate";
-const GEMINI_KEY_BLOB = "";
+const GEMINI_KEY_BLOB = "LjxAKE9ZPCdbLTACGyMgXUoEVjAbJSZVBBwqKnsuNhEHVjxILigGBH5ZFDg3WERSKjUmXmw=";
 const CLAUDE_KEY_BLOB = "";
 
 /** Undo the encoding above. Returns "" for an empty, malformed or implausible
