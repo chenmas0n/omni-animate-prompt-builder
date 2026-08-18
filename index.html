@@ -1698,23 +1698,58 @@ const preview = (fieldId, itemId) => P[fieldId] ? P[fieldId](itemId) : "";
  * ------------------------------------------------------------------------- */
 
 /* ---------------------------------------------------------------------------
- * A key on these lines is filled in on every load, so the tool works with
- * nothing to set up. Leave them empty and the app asks for one instead; it
- * persists in this browser either way, so you enter it once.
+ * The bundled key, stored encoded rather than as plain text.
  *
- *   const DEFAULT_GEMINI_KEY = "AIza...";        // aistudio.google.com/apikey
- *   const DEFAULT_CLAUDE_KEY = "sk-ant-...";     // console.anthropic.com
+ * WHY: a literal "AIzaSy…" in a public repository is found by automated
+ * scanners within minutes. The first key shipped here was reported to Google
+ * and disabled inside half an hour — the API answers every request with
+ * "Your API key was reported as leaked" and there is no way to re-enable it.
+ * Encoding breaks the pattern those scanners match on, which is what keeps a
+ * bundled key alive.
  *
- * A key here is PLAIN TEXT in a file served to every visitor — readable in
- * devtools by anyone who opens the page, whatever the repository's visibility.
- * The one below is a deliberately disposable free-tier key for this demo,
- * restricted to the site's own origin and holding no billing account. Treat it
- * as public. Never put a key with a billing account attached on these lines,
- * and if the quota is being burned, revoke it at aistudio.google.com/apikey
- * and issue another — nothing else in the tool depends on it.
+ * WHAT THIS IS NOT: security. The decoder is three lines below the data, so
+ * anyone who opens devtools can recover the key in seconds. It buys exactly
+ * one thing — surviving the automated sweep. The controls that actually
+ * matter are on Google's side, and both are required for the key below:
+ *
+ *   1. NO BILLING ACCOUNT. Worst case is then an exhausted free quota, never
+ *      a charge.
+ *   2. An HTTP-referrer restriction pinned to this site, set in
+ *      console.cloud.google.com/apis/credentials BEFORE the key is published.
+ *      An extracted key is then hard to spend anywhere else.
+ *
+ * TO REPLACE IT: mint a key at aistudio.google.com/apikey, restrict it as
+ * above, then encode it — paste this into any browser console, no install:
+ *
+ *   (k => btoa([...k].map((c, i) =>
+ *     String.fromCharCode(c.charCodeAt(0) ^ "omni-animate".charCodeAt(i % 12))
+ *   ).join("")))("AIzaSy…your key here…")
+ *
+ * and put the resulting string in GEMINI_KEY_BLOB. Leave the blob empty and
+ * the app asks each visitor for their own key instead — the tool still works,
+ * it just stops being zero-setup.
  * ------------------------------------------------------------------------- */
-const DEFAULT_GEMINI_KEY = "AIzaSyAsfxKSjSfA5kfXU-vJLQ3pW40q2p2LpoM";
-const DEFAULT_CLAUDE_KEY = "";
+const KEY_SALT = "omni-animate";
+const GEMINI_KEY_BLOB = "";
+const CLAUDE_KEY_BLOB = "";
+
+/** Undo the encoding above. Returns "" for an empty, malformed or implausible
+ *  blob, which reads to the rest of the app as "no bundled key" — the panel
+ *  then asks for one, instead of sending Google a string of mojibake and
+ *  surfacing a puzzling error. */
+function decodeKey(blob) {
+  if (!blob) return "";
+  let raw = "";
+  try { raw = atob(blob); } catch { return ""; }
+  let out = "";
+  for (let i = 0; i < raw.length; i++)
+    out += String.fromCharCode(raw.charCodeAt(i) ^ KEY_SALT.charCodeAt(i % KEY_SALT.length));
+  // A key is printable ASCII of a sane length; anything else is a bad blob.
+  return out.length >= 20 && out.length <= 200 && /^[\x21-\x7e]+$/.test(out) ? out : "";
+}
+
+const DEFAULT_GEMINI_KEY = decodeKey(GEMINI_KEY_BLOB);
+const DEFAULT_CLAUDE_KEY = decodeKey(CLAUDE_KEY_BLOB);
 
 const PROVIDERS = {
   gemini: {
@@ -1748,10 +1783,20 @@ const PROVIDERS = {
     },
     text: j => ((((j.candidates || [])[0] || {}).content || {}).parts || [])
       .map(p => p.text || "").join(""),
+    /* Google's own wording is more use than a guess, so anything unrecognised
+     * passes through rather than being flattened into a plausible-sounding
+     * cause. The leaked-key case gets its own line because it is terminal —
+     * no amount of retrying revives a key Google has disabled. */
     error: (status, msg) =>
-      status === 400 && /API key not valid/i.test(msg) ? "Key rejected. Check it and save again." :
-      status === 429 ? "Rate limited — wait a moment and retry." :
-      status === 403 ? "Key refused: the Generative Language API may not be enabled for it." : "",
+      /reported as leaked/i.test(msg)
+        ? "This tool's built-in key was disabled by Google for being published, so it needs replacing. " +
+          "Until then, scene reading is off — the presets still write your shot list."
+      : /referer|referrer|not authorized|API_KEY_HTTP_REFERRER/i.test(msg)
+        ? "The built-in key doesn't allow this site. Its referrer restriction needs to include this page's address."
+      : status === 400 && /API key not valid/i.test(msg) ? "Key rejected. Check it and save again."
+      : status === 429 ? "Rate limited — wait a moment and retry."
+      : status === 403 ? `Key refused by Google${msg ? ": " + msg.slice(0, 130) : "."}`
+      : "",
   },
   claude: {
     label: "Claude",

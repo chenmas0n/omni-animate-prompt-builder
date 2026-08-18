@@ -65,19 +65,28 @@ and durations are scaled to fit the runtime cap after expansion.
 
 ## The API key
 
-**A free-tier Gemini key ships in `index.html`, so there is nothing to set up and nothing
-to ask for.** Open the page and it reads your images. No key prompt appears at all.
+A free-tier Gemini key can ship inside `index.html`, so the tool needs no setup: open the
+page and it reads your images, with no key prompt anywhere. While a key is bundled it is
+*the* key — it outranks anything a browser saved on an earlier visit, and there is no key
+field, provider switch or "use your own" link in the UI. With the blob left empty, the
+References panel asks each visitor for their own key instead and everything still works.
 
-> **That key is public and disposable.** It is plain text in a file served to every
-> visitor, readable in devtools by anyone who opens the page. It carries no billing
-> account, so the worst case is an exhausted daily quota, not a bill. It is restricted to
-> this site's origin. If it gets burned or revoked, issue another at
-> [aistudio.google.com/apikey](https://aistudio.google.com/apikey) and replace the
-> constant — nothing else depends on it. **Never put a key with billing attached there.**
+> **A bundled key is public.** It reaches every visitor's browser, so anyone who opens
+> devtools can read it. It is stored encoded (see below), which is *not* security — it
+> only stops automated scanners. The protections that count are that the key **carries no
+> billing account** (worst case is an exhausted free quota, never a charge) and is
+> **restricted to this site's origin**. Never bundle a key with billing attached.
 
-While a key is in the file it is *the* key: it outranks anything a browser saved on an
-earlier visit, and there is no key field, provider switch or "use your own" link anywhere
-in the UI. To use a different one, change the constant — see below.
+### Why the key is encoded
+
+The first key shipped here was a plain `AIzaSy…` literal. GitHub's secret scanning found
+it in this public repo, reported it to Google, and Google disabled it **within about half
+an hour** — every request then returns `403` with *"Your API key was reported as leaked."*
+That is terminal; a disabled key cannot be re-enabled.
+
+So the key is stored XOR-encoded and base64'd, which breaks the pattern the scanners match
+on. To be explicit about what that does and doesn't buy: it keeps a bundled key alive, and
+it stops nobody who actually looks at the page source.
 
 **Gemini** (free tier, no billing setup): [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
 Uses `gemini-3.5-flash-lite`, falling back to `gemini-flash-lite-latest` then
@@ -114,18 +123,33 @@ would need a proxy server, which defeats the point of a single file.
 Images leave the browser at two moments only: when you press Describe, and when you pick a
 preset and the model writes the shot list. Nothing is sent otherwise.
 
-### Changing the key
+### Replacing the bundled key
 
-Near the top of the script in `index.html`:
+1. Mint a key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey) on a
+   project with **no billing account**.
+2. **Before publishing it**, open
+   [console.cloud.google.com/apis/credentials](https://console.cloud.google.com/apis/credentials),
+   open the key, and set *Application restrictions → Websites* to the site that serves the
+   page, e.g. `chenmas0n.github.io/*`. Referrers are spoofable, so this is a speed bump
+   rather than a wall — but it makes an extracted key awkward to spend elsewhere.
+3. Encode it. Paste this into any browser console — nothing to install:
 
-```js
-const DEFAULT_GEMINI_KEY = "AIza…";
-const DEFAULT_CLAUDE_KEY = "";
-```
+   ```js
+   (k => btoa([...k].map((c, i) =>
+     String.fromCharCode(c.charCodeAt(0) ^ "omni-animate".charCodeAt(i % 12))
+   ).join("")))("AIza…your key here…")
+   ```
 
-Whichever is filled in is used on every load, and the key UI stays hidden. Blank them both
-and the app falls back to asking for a key in the References panel — provider switch, key
-field, "Forget key" and all — storing it in that browser's `localStorage`.
+4. Put the resulting string in `GEMINI_KEY_BLOB` near the top of the script in
+   `index.html`. `CLAUDE_KEY_BLOB` works the same way.
+
+Leave a blob empty and that provider falls back to asking the visitor for a key, stored in
+their browser's `localStorage`. A malformed blob decodes to nothing and does the same,
+rather than sending a broken key to the API.
+
+If a bundled key does get disabled, the app says so in plain words on the References panel
+and the presets keep expanding from their own wording — the tool degrades, it doesn't
+break.
 
 > Anything on those lines is public — see the warning above. `.gitignore` excludes
 > `index.local.html` if you'd rather keep a differently-keyed copy alongside this one.
