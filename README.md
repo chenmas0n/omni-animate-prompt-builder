@@ -11,13 +11,20 @@ Open `index.html`. That's the whole install.
 Three steps:
 
 1. **References** — drag in the images you'll feed the model. Tag each one
-   (character, environment, product, style, lighting, start frame). Palette, warmth, tone,
+   (character, environment, product, VFX sheet, storyboard, animation / poses, style,
+   lighting, start frame, UI / menu layout, logo, text / title, icon, banner / graphic),
+   or leave **Auto detect** selected. Palette, warmth, tone,
    contrast and saturation are read off the pixels automatically. Naming them is optional —
-   step 2 does it for you.
-2. **Preset** — pick what kind of animation you want. 30 starting points across 10
+   step 2 identifies the subject, reference type and any ordered panels or poses for you.
+2. **Preset** — pick what kind of animation you want. 44 starting points across 13
    collapsible groups.
 3. **Shots** — the shot list, already written, as a storyboard grid. Click any shot to
    edit its text or settings. The prompt sits at the bottom and updates as you type.
+
+The tool auto-saves the current job — prompt, shot settings and downscaled reference
+images — in the browser. **History** reopens any of the 20 most recent jobs, and a refresh
+restores the current draft. **Start new prompt** saves the current job to history and resets
+the three steps for a clean job.
 
 ## How step 2 fills in step 3
 
@@ -28,6 +35,13 @@ temperature, transitions and per-shot timing, and writing the scene and action t
 every beat. Subjects are cited as `(ref N)` so the video model binds the words back to the
 right image. You land on step 3 with a finished list to fine-tune, and a **Rewrite this
 shot list** button for another take.
+
+Storyboards are treated as ordered shot plans rather than style images: the model reads
+panels in visual order and preserves framing, blocking, screen direction, action and cuts.
+VFX and animation sheets are read as ordered effect stages or key poses. A separately
+tagged character reference supplies final identity and design while the board or pose sheet
+supplies the sequence. Each reference card also has an optional direction-notes field for
+clarifying panel order, effect direction, planted contacts or other constraints.
 
 There is nothing to set up: a free-tier Gemini key ships in the file, so it works on first
 open. See [The API key](#the-api-key) for what that means and how to use your own instead.
@@ -49,8 +63,11 @@ Total runtime is capped at 15 seconds; shot lengths draw from that shared budget
 | Group | Presets |
 | --- | --- |
 | Game cinematic | Character reveal, Boss reveal, Combat beat, Environment flythrough, Cutscene dialogue, Vehicle reveal |
-| Game animation | Idle loop, Locomotion pass, Ability / VFX beat, Expression pass |
+| Game animation | Idle loop, Locomotion pass, Ability / VFX beat, MOBA champion ability showcase, Expression pass |
+| VFX exploration | VFX sheet → graybox, 360° readability test, Impact & scale test, Ambient VFX loop |
+| Storyboard & animation | Storyboard → sequence, Storyboard + character, Pose sheet → motion, Animation in graybox |
 | Game marketing | Roster line-up, Logo sting, Gameplay montage |
+| UI/UX visual design | Menu flow showcase, UI transition exploration, Graphic element motion system, Logo & title package, HUD motion pass |
 | Product | Product turntable, Hero reveal, Macro detail pass, Three-shot product spot |
 | Architecture | Exterior approach, Interior reveal, Material tour |
 | Automotive | Rolling shot, Interior pan |
@@ -62,6 +79,35 @@ Total runtime is capped at 15 seconds; shot lengths draw from that shared budget
 Presets are recipes, not fixed lists. A beat marked `per` repeats for every matching
 reference you uploaded — three character refs build three reveal beats, one builds one —
 and durations are scaled to fit the runtime cap after expansion.
+
+### VFX and storyboard workflows
+
+- For a VFX concept/progression sheet, leave its tag on **Auto detect** or choose
+  **VFX sheet**, then use **VFX sheet → graybox** to see anticipation, emission, impact
+  and decay in an empty measured game-level scene.
+- For a storyboard, tag the board **Storyboard** and any separate design image
+  **Character**, then choose **Storyboard + character**. Panel composition and acting come
+  from the board; identity, costume, proportions, materials and colour come from the
+  character reference.
+- For pose sheets or keyframes, use **Animation / poses** with **Pose sheet → motion**.
+  The generated sequence preserves pose order, contacts, facing direction, silhouette and
+  motion arcs.
+
+### UI/UX visual-design workflows
+
+Upload complete screens as **UI / menu layout**, then tag separate production assets as
+**Logo**, **Text / title**, **Icon** or **Banner / graphic**. The UI/UX presets treat those
+references as exact flat assets: words, letterforms, icon meaning, geometry, colours,
+spacing and alignment are preserved.
+
+- **Menu flow showcase** builds a navigable sequence across supplied menu states.
+- **UI transition exploration** tests slide, mask, scale-and-fade, shared-element and
+  staggered transitions while ending on exact source layouts.
+- **Graphic element motion system** gives logos, text, banners and icons one shared motion
+  language before assembling the complete interface.
+- **Logo & title package** creates a brand-safe title and end-card sequence.
+- **HUD motion pass** demonstrates entrance, value changes, cooldown or selection feedback,
+  notifications and exit states at fixed screen anchors.
 
 ## The API key
 
@@ -161,6 +207,8 @@ break.
 
 - Runs from `file://`. No server needed. The one thing that doesn't work there is the
   Cache API, which is why nothing depends on it.
+- Prompt history uses IndexedDB and stays entirely in the current browser profile. Clearing
+  site data removes it; it is not synced to another browser or device.
 - Fonts (Space Mono, DM Sans) load from Google Fonts and degrade to system faces offline.
 - Camera-move previews animate on hover only, so a selected card holds still.
 - Respects `prefers-reduced-motion`.

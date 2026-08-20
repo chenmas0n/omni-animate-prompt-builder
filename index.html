@@ -42,6 +42,23 @@
     font-size:clamp(1.6rem,3.6vw,2.3rem); font-weight:700; letter-spacing:-.025em; line-height:1.1;
   }
   .masthead h1 span { color:var(--accent); }
+  .jobactions {
+    display:flex; justify-content:center; align-items:center; gap:.45rem; margin-top:1rem;
+  }
+  .jobbtn {
+    appearance:none; cursor:pointer; background:transparent; border:1px solid var(--stone);
+    border-radius:5px; padding:.42rem .7rem; color:var(--steel);
+    font-family:var(--mono); font-size:.58rem; letter-spacing:.1em; text-transform:uppercase;
+    transition:border-color .2s, color .2s, background .2s;
+  }
+  .jobbtn:hover { border-color:var(--ink); color:var(--ink); }
+  .jobbtn.primary { background:var(--ink); border-color:var(--ink); color:var(--paper); }
+  .jobbtn.primary:hover { background:var(--accent); border-color:var(--accent); }
+  .jobcount {
+    display:inline-grid; place-items:center; min-width:1.25rem; height:1.25rem; margin-left:.3rem;
+    padding:0 .25rem; border-radius:.7rem; background:var(--stone); color:var(--body);
+    font-size:.53rem; letter-spacing:0;
+  }
 
   /* ---- step rail ---- */
   .rail {
@@ -280,6 +297,13 @@
     font-size:.72rem; line-height:1.5; color:var(--steel); margin-bottom:.2rem;
     max-height:4.5em; overflow:hidden;
   }
+  .refnotes {
+    min-height:4.5rem; padding:.5rem .6rem; font-size:.78rem; line-height:1.45;
+  }
+  .refsequence {
+    margin:.15rem 0 .25rem 1.1rem; color:var(--body); font-size:.72rem; line-height:1.45;
+  }
+  .refsequence li { padding-left:.15rem; margin-bottom:.18rem; }
 
   /* ---- storyboard tiles ---- */
   .tiles {
@@ -579,6 +603,75 @@
   .meter b { color:var(--steel); font-weight:700; }
   .meter .warn { color:var(--accent); }
 
+  /* ---- local job history ---- */
+  .history-modal[hidden] { display:none; }
+  .history-modal {
+    position:fixed; inset:0; z-index:10000; display:grid; place-items:center; padding:1.5rem;
+    background:rgba(10,10,10,.68); backdrop-filter:blur(4px);
+  }
+  .history-dialog {
+    width:min(780px,100%); max-height:min(82vh,760px); overflow:hidden;
+    display:flex; flex-direction:column; background:var(--paper); border:1px solid var(--stone);
+    border-radius:8px; box-shadow:0 24px 70px rgba(0,0,0,.35);
+  }
+  .history-head {
+    display:flex; align-items:flex-start; gap:1rem; padding:1.15rem 1.25rem;
+    border-bottom:1px solid var(--stone); background:#fff;
+  }
+  .history-head h2 { font-size:1.2rem; line-height:1.2; }
+  .history-head p { color:var(--steel); font-size:.72rem; margin-top:.25rem; }
+  .history-close {
+    appearance:none; cursor:pointer; margin-left:auto; width:30px; height:30px;
+    border:1px solid var(--stone); border-radius:5px; background:transparent;
+    color:var(--steel); font-size:1.1rem; line-height:1;
+  }
+  .history-close:hover { color:var(--accent); border-color:var(--accent); }
+  .history-list { overflow:auto; padding:1rem; display:grid; gap:.7rem; }
+  .history-empty {
+    padding:3rem 1rem; text-align:center; color:var(--steel); font-size:.85rem;
+  }
+  .history-job {
+    display:grid; grid-template-columns:112px minmax(0,1fr) auto; gap:.9rem; align-items:center;
+    padding:.65rem; border:1px solid var(--stone); border-radius:6px; background:#fff;
+  }
+  .history-thumbs {
+    height:76px; display:grid; grid-template-columns:repeat(2,1fr); gap:3px;
+    overflow:hidden; border-radius:4px; background:#191a1e;
+  }
+  .history-thumbs img { width:100%; height:100%; min-height:0; object-fit:cover; display:block; }
+  .history-thumbs.one { grid-template-columns:1fr; }
+  .history-no-thumb {
+    height:76px; display:grid; place-items:center; border-radius:4px; background:#191a1e;
+    color:#666670; font-family:var(--mono); font-size:.55rem; letter-spacing:.1em; text-transform:uppercase;
+  }
+  .history-copy { min-width:0; }
+  .history-title {
+    display:flex; flex-wrap:wrap; align-items:center; gap:.4rem;
+    font-size:.9rem; font-weight:700; line-height:1.3;
+  }
+  .history-current {
+    padding:.12rem .35rem; border-radius:3px; background:rgba(230,57,32,.1); color:var(--accent);
+    font-family:var(--mono); font-size:.5rem; letter-spacing:.08em; text-transform:uppercase;
+  }
+  .history-meta {
+    margin-top:.25rem; color:var(--steel); font-family:var(--mono);
+    font-size:.55rem; letter-spacing:.06em; text-transform:uppercase;
+  }
+  .history-excerpt {
+    margin-top:.35rem; color:var(--body); font-size:.72rem; line-height:1.4;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .history-actions { display:flex; flex-direction:column; gap:.35rem; }
+  .history-actions button {
+    appearance:none; cursor:pointer; border:1px solid var(--stone); border-radius:4px;
+    background:transparent; padding:.4rem .6rem; color:var(--body);
+    font-family:var(--mono); font-size:.54rem; letter-spacing:.08em; text-transform:uppercase;
+  }
+  .history-actions button:hover { border-color:var(--ink); color:var(--ink); }
+  .history-actions .danger:hover { border-color:var(--accent); color:var(--accent); }
+  .history-actions button:disabled { opacity:.4; cursor:default; }
+  .history-actions button:disabled:hover { border-color:var(--stone); color:var(--body); }
+
   @media (max-width:640px) {
     .container { padding:0 1.25rem; }
     .rail { gap:0 .9rem; }
@@ -586,6 +679,9 @@
     .shottabs { flex-direction:column; align-items:stretch; width:100%; }
     .stab { border-right:0; border-bottom:1px solid var(--stone); }
     .applyall { border-left:0; border-bottom:0; }
+    .history-modal { padding:.75rem; }
+    .history-job { grid-template-columns:80px minmax(0,1fr); }
+    .history-actions { grid-column:1 / -1; flex-direction:row; justify-content:flex-end; }
   }
 </style>
 </head>
@@ -629,12 +725,28 @@
 <div class="container">
   <div class="masthead">
     <h1>Omni-Animate <span>Prompt Builder</span></h1>
+    <div class="jobactions">
+      <button class="jobbtn" id="historyBtn" type="button">History <span class="jobcount" id="historyCount">0</span></button>
+      <button class="jobbtn primary" id="newPromptBtn" type="button">Start new prompt</button>
+    </div>
     <nav class="rail" id="rail"></nav>
   </div>
   <main id="stage"></main>
 </div>
 
 <input type="file" id="filein" accept="image/*" multiple hidden />
+<div class="history-modal" id="historyModal" role="dialog" aria-modal="true" aria-labelledby="historyTitle" hidden>
+  <section class="history-dialog">
+    <header class="history-head">
+      <div>
+        <h2 id="historyTitle">Prompt history</h2>
+        <p>Stored only in this browser · the 20 most recent jobs</p>
+      </div>
+      <button class="history-close" id="historyClose" type="button" aria-label="Close history">&times;</button>
+    </header>
+    <div class="history-list" id="historyList"></div>
+  </section>
+</div>
 
 <script>
 "use strict";
@@ -661,6 +773,10 @@ const FIELD = {
       ["full","Full product","a full-product framing with even margins"],
       ["detail","Detail crop","a tight detail crop"], ["macro","Macro","a macro framing"],
     ]},
+    { name:"Interface", items:[
+      ["screen","Full screen UI","a full-screen interface framing"],
+      ["panel","UI panel detail","a tight interface-panel framing"],
+    ]},
   ]},
   angle: { label:"Camera angle", groups:[
     { name:"Cinematic", items:[
@@ -672,6 +788,9 @@ const FIELD = {
       ["tq","Three-quarter front","from a three-quarter front angle"],
       ["profile","Straight-on profile","from a straight-on profile"],
       ["elev45","45° elevated","from a 45° elevated angle"], ["table","Table level","from table level"],
+    ]},
+    { name:"Interface", items:[
+      ["flat","Screen plane","straight-on to the interface plane"],
     ]},
   ]},
   lens: { label:"Focal length", items:[
@@ -778,8 +897,8 @@ const FIELD = {
  * behind "show all" — and a non-core option that's already chosen (from a
  * preset, say) is always rendered so a selection can never hide. */
 const CORE = {
-  framing: ["ws","ms","mcu","cu","hero","macro"],
-  angle:   ["eye","low","high","tq"],
+  framing: ["ws","ms","mcu","cu","hero","macro","screen"],
+  angle:   ["eye","low","high","tq","flat"],
   lens:    ["24","35","50","85","macro"],
   motion:  ["locked","dolly-in","dolly-out","arc-l","turntable","handheld","crane","truck-r"],
   light:   ["soft-key","three-point","high-key","low-key","golden","window"],
@@ -792,10 +911,17 @@ const CORE = {
 
 /** Reference categories: [id, label, role phrase used in the prompt]. */
 const REF_CATS = [
+  ["auto","Auto detect","the visual reference"],
   ["character","Character","the character"], ["environment","Environment","the environment"],
   ["product","Product","the product"], ["style","Style","the visual style"],
   ["lighting","Lighting","the lighting"], ["start","Start frame","the opening frame"],
+  ["vfx","VFX sheet","the VFX design"], ["storyboard","Storyboard","the storyboard sequence"],
+  ["animation","Animation / poses","the animation timing and poses"],
+  ["ui","UI / menu layout","the interface layout"], ["logo","Logo","the logo"],
+  ["text","Text / title","the typography"], ["icon","Icon","the iconography"],
+  ["graphic","Banner / graphic","the graphic element"],
 ];
+const REF_CAT_IDS = REF_CATS.map(c => c[0]);
 
 /* An image's measurable qualities are read off its pixels on upload — palette,
  * tone, contrast, saturation and warmth. Those are the details a browser can
@@ -1026,6 +1152,33 @@ const PRESETS = [
         scene:"a wide on the impact point as the effect lands in {environment|the arena floor}",
         action:"a shockwave rings outward and debris lifts as the camera pulls back" }] },
 
+  { id:"moba-ability-showcase", group:"Game animation", name:"MOBA champion ability showcase", pv:["light","neon"],
+    sum:"A full kit pass under one locked top-down gameplay camera, with clear casts, telegraphs and impacts.",
+    guidance:"Identify the champion and every distinct ability shown or named in the references. Create one concise gameplay vignette per ability, up to the shot limit, preserving the source order; if labels exist, follow passive/basic, Q, W, E and R order. Use the same locked top-down three-quarter MOBA camera, screen direction and level scale throughout. Stage the champion in a sparse lane or test arena with simple target dummies. Keep the champion, ground telegraphs and full effect footprint visible. For each ability show anticipation, cast, travel or area behavior, contact, peak impact and readable decay as applicable. Keep it HUD-free and avoid cinematic close-ups or camera moves.",
+    output:"Show the champion's complete ability kit as separate gameplay vignettes under one locked top-down three-quarter MOBA camera. Keep screen direction, zoom and level scale consistent; use a sparse test lane and target dummies so cast poses, ground telegraphs, travel paths, impact footprints and decay remain readable. Keep the capture HUD-free.",
+    style:"render", cadence:"60", atmos:[], endWith:"hold",
+    recipe:[
+      { role:"once", dur:3, framing:"mws", angle:"high", lens:"50", dof:"deep", motion:["locked"], speed:"steady",
+        light:"overcast", temp:"neutral", transIn:"cut",
+        scene:"{character|the MOBA champion} centred in a sparse test lane under a locked top-down three-quarter gameplay camera, one target dummy at attack range",
+        action:"a basic attack lands and the passive or on-hit behavior procs clearly, then all secondary motion settles" },
+      { role:"once", dur:3, framing:"ws", angle:"high", lens:"50", dof:"deep", motion:["locked"], speed:"steady",
+        light:"overcast", temp:"neutral", transIn:"cut",
+        scene:"the champion and a target dummy held at the same gameplay zoom with the first ability's full path visible",
+        action:"the first ability shows its anticipation and cast, travels toward the target, makes contact and decays without leaving frame" },
+      { role:"once", dur:3, framing:"ws", angle:"high", lens:"50", dof:"deep", motion:["locked"], speed:"steady",
+        light:"overcast", temp:"neutral", transIn:"cut",
+        scene:"the same top-down test lane with the second ability's ground telegraph and complete area of effect visible",
+        action:"the telegraph resolves into the active effect, reaches peak area, hits the dummy and fades cleanly" },
+      { role:"once", dur:3, framing:"ws", angle:"high", lens:"50", dof:"deep", motion:["locked"], speed:"steady",
+        light:"overcast", temp:"neutral", transIn:"cut",
+        scene:"the champion reset to centre frame with open lane space showing the third ability's movement or defensive footprint",
+        action:"the mobility, control or defensive ability plays from startup through recovery while root motion and facing remain readable" },
+      { role:"once", dur:3, framing:"ws", angle:"high", lens:"50", dof:"deep", motion:["locked"], speed:"steady",
+        light:"neon", temp:"mixed", transIn:"cut",
+        scene:"the champion facing a small group of target dummies with the ultimate's complete range visible at the same gameplay scale",
+        action:"the ultimate builds from its telegraph to peak impact across all targets, then secondary VFX decay to a clean final frame" }] },
+
   { id:"expression", group:"Game animation", name:"Expression pass", pv:["light","three-point"],
     sum:"A face-only performance pass per character, then an extreme close-up on the eyes.",
     style:"render", cadence:"30", atmos:[], endWith:"cut",
@@ -1038,6 +1191,258 @@ const PRESETS = [
         light:"soft-key", temp:"neutral", transIn:"match",
         scene:"an extreme close-up on the eyes alone",
         action:"a slow blink, then the gaze tracks fractionally to follow something off-frame" }] },
+
+  /* ---- VFX exploration ---- */
+  { id:"vfx-graybox", group:"VFX exploration", name:"VFX sheet → graybox", pv:["light","neon"],
+    sum:"Rebuild the effect sheet as a readable gameplay beat in an empty game-level test scene.",
+    guidance:"Treat every VFX sheet as effect-design reference, not a background. Reconstruct its stages in order and stage the result in a sparse neutral graybox game level with a floor plane, scale markers and no visual clutter. If a character reference is present, cast that character as the effect source.",
+    output:"Stage the referenced VFX in an empty neutral graybox game level with a simple floor plane and scale markers. Preserve the sheet's effect silhouette, colour, timing stages and direction; keep the environment uncluttered so gameplay readability is clear.",
+    style:"render", cadence:"60", atmos:["flare","dust"], endWith:"hold",
+    recipe:[
+      { role:"once", dur:3, framing:"ws", angle:"eye", lens:"35", dof:"deep", motion:["locked"], speed:"slow",
+        light:"overcast", temp:"neutral", transIn:"cut",
+        scene:"an empty neutral graybox game level with a floor grid and simple scale blocks, {character|a game character} ready at centre frame",
+        action:"the character settles into anticipation while {vfx|the effect} remains dormant" },
+      { role:"once", dur:4, framing:"ms", angle:"tq", lens:"50", dof:"moderate", motion:["dolly-in"], speed:"slow",
+        light:"neon", temp:"mixed", transIn:"cut",
+        scene:"the activation stage of {vfx|the effect} forming around the source, clearly silhouetted against the empty level",
+        action:"the effect follows the sheet's windup and emission stages in order as energy gathers and releases" },
+      { role:"once", dur:4, framing:"ws", angle:"high", lens:"24", dof:"deep", motion:["dolly-out"], speed:"fast",
+        light:"neon", temp:"mixed", transIn:"cut",
+        scene:"the effect reaching full gameplay scale across the floor grid",
+        action:"the main body travels or expands along the sheet's direction, hits its target point and shows the peak impact shape" },
+      { role:"once", dur:3, framing:"mws", angle:"eye", lens:"35", dof:"deep", motion:["locked"], speed:"slow",
+        light:"overcast", temp:"neutral", transIn:"cut",
+        scene:"the empty test level after impact with the final particles still readable",
+        action:"secondary motion and residue dissipate in the same order shown by the sheet, returning the scene to neutral" }] },
+
+  { id:"vfx-readability", group:"VFX exploration", name:"360° readability test", pv:["motion","orbit-reveal"],
+    sum:"Hold the effect at peak shape and inspect its silhouette from gameplay angles.",
+    guidance:"Use the VFX sheet to reconstruct one coherent peak-state effect. Show it in an empty graybox level and preserve a stable world-space effect while the camera checks front, side and elevated readability. Do not turn the reference sheet itself into a floating object.",
+    output:"Reconstruct the referenced effect at its peak state in an empty graybox game level. Keep the effect fixed in world space while the camera checks its silhouette and layering from multiple gameplay angles.",
+    style:"render", cadence:"60", atmos:["flare"], endWith:"hold",
+    recipe:[
+      { role:"once", dur:7, framing:"ws", angle:"eye", lens:"35", dof:"deep", motion:["arc-r"], speed:"slow",
+        light:"overcast", temp:"neutral", transIn:"fade-black",
+        scene:"{vfx|the effect} held at its peak shape above a floor grid in an empty graybox game level",
+        action:"the effect remains stable as the camera arcs from front three-quarter to side view, revealing silhouette and particle layering" },
+      { role:"once", dur:5, framing:"ws", angle:"high", lens:"35", dof:"deep", motion:["ped-up"], speed:"slow",
+        light:"overcast", temp:"neutral", transIn:"dissolve",
+        scene:"the same peak effect seen from an elevated gameplay camera with grid scale visible",
+        action:"the camera rises to show footprint, travel direction and area-of-effect boundary" }] },
+
+  { id:"vfx-impact-scale", group:"VFX exploration", name:"Impact & scale test", pv:["motion","dolly-out"],
+    sum:"Anticipation, contact and decay against a target dummy and a measured floor grid.",
+    guidance:"Read the VFX sheet as an ordered anticipation-contact-impact-decay design. Use a mannequin or primitive target in an empty level for scale. Keep the target simple unless a character reference is supplied.",
+    output:"Test the referenced VFX against a simple target in an empty measured graybox level. Make anticipation, contact frame, peak radius and decay separately readable.",
+    style:"render", cadence:"60", atmos:["dust","flare"], endWith:"hold",
+    recipe:[
+      { role:"once", dur:4, framing:"mws", angle:"profile", lens:"50", dof:"deep", motion:["locked"], speed:"slow",
+        light:"overcast", temp:"neutral", transIn:"cut",
+        scene:"{character|a neutral mannequin} facing a primitive target across an empty gridded game level",
+        action:"the source enters the sheet's anticipation pose as the first VFX elements gather" },
+      { role:"once", dur:4, framing:"ws", angle:"eye", lens:"35", dof:"deep", motion:["dolly-out"], speed:"fast",
+        light:"neon", temp:"mixed", transIn:"cut",
+        scene:"{vfx|the effect} making contact with the target at centre frame",
+        action:"the contact flash snaps into the peak impact shape and the camera gives ground to keep the full radius visible" },
+      { role:"once", dur:4, framing:"ws", angle:"high", lens:"24", dof:"deep", motion:["locked"], speed:"slow",
+        light:"overcast", temp:"neutral", transIn:"cut",
+        scene:"the measured floor grid beneath the fading impact footprint",
+        action:"secondary particles, distortion and residue decay cleanly while the target and radius remain visible for scale" }] },
+
+  { id:"vfx-loop-test", group:"VFX exploration", name:"Ambient VFX loop", pv:["light","shafts"],
+    sum:"Turn each aura, portal or environmental effect sheet into a seamless gameplay loop.",
+    guidance:"Identify the repeating stages in each VFX sheet. Build a seamless loop in a sparse empty game level; the final effect state, particle positions and lighting must connect naturally back to the opening state.",
+    output:"Animate each referenced ambient VFX as a seamless loop in an empty neutral game level. Preserve its visual design and return particles, light and distortion to the exact opening state.",
+    style:"render", cadence:"60", atmos:["haze","dust"], endWith:"hold",
+    recipe:[
+      { role:"per", cat:"vfx", dur:8, framing:"ws", angle:"tq", lens:"35", dof:"deep",
+        motion:["locked"], speed:"veryslow", light:"shafts", temp:"mixed", transIn:"cut",
+        scene:"{this} active at gameplay scale in the centre of an empty graybox level",
+        action:"the effect cycles through its sheet's stages and returns exactly to its starting shape, particle distribution and light level" }] },
+
+  /* ---- storyboard & animation reference ---- */
+  { id:"storyboard-sequence", group:"Storyboard & animation", name:"Storyboard → sequence", pv:["motion","dolly-in"],
+    sum:"Read every panel in order and turn it into a faithful editable shot list.",
+    guidance:"Detect all storyboard panels and captions. Traverse them in normal visual reading order and create one shot per legible panel, up to the shot limit. Preserve shot order, framing, angle, blocking, screen direction, action and cuts. The storyboard controls composition and sequence, not final rendering style.",
+    output:"Follow the storyboard panels in reading order. Preserve their shot order, framing, camera angle, blocking, screen direction, action and cuts; use the other tagged references for final appearance.",
+    style:"cinematic", cadence:"24", atmos:["grain"], endWith:"hold",
+    recipe:[
+      { role:"once", dur:3, framing:"ws", angle:"eye", lens:"35", dof:"deep", motion:["locked"], speed:"slow",
+        light:"overcast", temp:"neutral", transIn:"cut",
+        scene:"the setting and subjects composed exactly as the first storyboard panel",
+        action:"the first panel's action begins without changing its staging or screen direction" },
+      { role:"once", dur:4, framing:"ms", angle:"eye", lens:"50", dof:"moderate", motion:["locked"], speed:"steady",
+        light:"overcast", temp:"neutral", transIn:"cut",
+        scene:"the next storyboard panel reconstructed with the same character positions and eyelines",
+        action:"the panel's described movement carries forward from the previous shot" },
+      { role:"once", dur:4, framing:"mcu", angle:"tq", lens:"85", dof:"shallow", motion:["dolly-in"], speed:"slow",
+        light:"window", temp:"neutral", transIn:"cut",
+        scene:"the following storyboard composition, preserving its crop, angle and focus",
+        action:"the storyboard's next performance beat plays with matching pose and direction" },
+      { role:"once", dur:4, framing:"ws", angle:"eye", lens:"35", dof:"deep", motion:["locked"], speed:"slow",
+        light:"overcast", temp:"neutral", transIn:"cut",
+        scene:"the final storyboard panel held in its intended closing composition",
+        action:"the last action resolves into the panel's end pose and holds" }] },
+
+  { id:"storyboard-character", group:"Storyboard & animation", name:"Storyboard + character", pv:["light","three-point"],
+    sum:"Use the board for acting and camera, but replace its drawn figure with your tagged character.",
+    guidance:"The storyboard supplies ordered panels, acting, poses, blocking and camera. Character-tagged references are authoritative for identity, costume, proportions, materials and colour. Cast each character reference into the matching storyboard role without copying the board's sketch style. Create one shot per panel up to the limit.",
+    output:"Use the storyboard for sequence, poses, blocking and camera, while using tagged character references for final identity, costume, proportions, materials and colour. Do not inherit the board's sketch style.",
+    style:"render", cadence:"24", atmos:[], endWith:"hold",
+    recipe:[
+      { role:"once", dur:4, framing:"ws", angle:"eye", lens:"35", dof:"deep", motion:["locked"], speed:"slow",
+        light:"three-point", temp:"neutral", transIn:"cut",
+        scene:"{character|the character} placed into the first storyboard panel's environment, framing and pose",
+        action:"the character begins the board's first action while preserving the panel's screen direction" },
+      { role:"once", dur:5, framing:"ms", angle:"tq", lens:"50", dof:"moderate", motion:["steadicam"], speed:"steady",
+        light:"three-point", temp:"neutral", transIn:"cut",
+        scene:"{character|the same character} in the next storyboard composition with design unchanged",
+        action:"the performance follows the next drawn pose and action beat, maintaining continuity" },
+      { role:"once", dur:5, framing:"mcu", angle:"eye", lens:"85", dof:"shallow", motion:["locked"], speed:"slow",
+        light:"soft-key", temp:"neutral", transIn:"cut",
+        scene:"the board's final character framing rebuilt with the tagged character's face, costume and proportions",
+        action:"the final expression and body pose resolve exactly as boarded" }] },
+
+  { id:"pose-sheet-motion", group:"Storyboard & animation", name:"Pose sheet → motion", pv:["motion","truck-r"],
+    sum:"Interpolate key poses in reading order without losing silhouette or character design.",
+    guidance:"Treat animation and pose sheets as ordered key poses. Determine their visual reading order, preserve contacts, silhouette, facing direction and limb arcs, and interpolate only the motion needed between keys. Character references control final appearance.",
+    output:"Follow the animation sheet's key poses in reading order. Preserve contacts, silhouette, facing direction, spacing and limb arcs, using tagged character references for final appearance.",
+    style:"render", cadence:"60", atmos:[], endWith:"hold",
+    recipe:[
+      { role:"once", dur:3, framing:"ws", angle:"profile", lens:"50", dof:"deep", motion:["locked"], speed:"slow",
+        light:"high-key", temp:"neutral", transIn:"cut",
+        scene:"{character|the character} in the first key pose from {animation|the animation sheet}, full body clear against a neutral stage",
+        action:"the pose holds briefly so silhouette, balance and contact points read" },
+      { role:"once", dur:4, framing:"ws", angle:"profile", lens:"50", dof:"deep", motion:["truck-r"], speed:"steady",
+        light:"high-key", temp:"neutral", transIn:"cut",
+        scene:"the character moving through the middle key poses in the sheet's reading order",
+        action:"the body follows clean arcs between keys without adding gestures or changing facing direction" },
+      { role:"once", dur:4, framing:"ws", angle:"profile", lens:"50", dof:"deep", motion:["locked"], speed:"slow",
+        light:"high-key", temp:"neutral", transIn:"cut",
+        scene:"the final key pose from the sheet, with the same character proportions and floor contact",
+        action:"the motion settles into the final silhouette and holds without drift" }] },
+
+  { id:"animation-graybox", group:"Storyboard & animation", name:"Animation in graybox", pv:["light","overcast"],
+    sum:"Test a boarded or pose-sheet action at gameplay scale in an empty level.",
+    guidance:"Use storyboard or animation references for the exact ordered performance. Stage the character in an empty graybox game level at a stable gameplay camera distance so root motion, timing, contacts and silhouette can be evaluated.",
+    output:"Stage the referenced animation at gameplay scale in an empty graybox level. Preserve the board or pose sheet's order, root motion, timing, contacts and silhouette under a stable gameplay camera.",
+    style:"render", cadence:"60", atmos:[], endWith:"hold",
+    recipe:[
+      { role:"once", dur:3, framing:"ws", angle:"tq", lens:"35", dof:"deep", motion:["locked"], speed:"slow",
+        light:"overcast", temp:"neutral", transIn:"cut",
+        scene:"{character|the character} in the opening pose on an empty gridded game-level floor with simple scale blocks",
+        action:"the opening anticipation holds long enough to read at gameplay distance" },
+      { role:"once", dur:6, framing:"ws", angle:"tq", lens:"35", dof:"deep", motion:["locked"], speed:"steady",
+        light:"overcast", temp:"neutral", transIn:"cut",
+        scene:"the same stable gameplay view as the full referenced action crosses the grid",
+        action:"the character follows the storyboard or pose sequence exactly, including root motion, contacts and facing direction" },
+      { role:"once", dur:4, framing:"ws", angle:"tq", lens:"35", dof:"deep", motion:["locked"], speed:"slow",
+        light:"overcast", temp:"neutral", transIn:"cut",
+        scene:"the ending pose held against the uncluttered graybox level",
+        action:"secondary motion settles while feet, hands and final silhouette remain clearly readable" }] },
+
+  /* ---- UI/UX visual design ---- */
+  { id:"ui-menu-flow", group:"UI/UX visual design", name:"Menu flow showcase", pv:["framing","screen"],
+    sum:"Move through connected menu layouts while preserving hierarchy, alignment and screen-space continuity.",
+    guidance:"Treat UI layout references as exact full-screen interface states and infer their intended navigation order from labels, hierarchy and user notes. Create one shot per meaningful screen or menu state, up to the shot limit. Keep a fixed straight-on viewport with no camera movement. Preserve all supplied text, logos, icons, spacing, scale and alignment exactly. Animate selection focus, navigation, panels and shared elements in screen space so each transition clearly communicates where the user moved.",
+    output:"Animate the referenced menu layouts as one coherent UI flow in a fixed straight-on viewport. Preserve exact text, logos, icons, spacing, hierarchy and alignment. Use clear screen-space motion, focus changes and shared-element continuity to show navigation between states; do not introduce camera movement or a 3D scene.",
+    style:"editorial", cadence:"60", atmos:[], endWith:"hold",
+    recipe:[
+      { role:"once", dur:3, framing:"screen", angle:"flat", motion:["locked"], transIn:"fade-black",
+        scene:"{ui|the main menu layout} filling the viewport exactly, with {logo|the logo} and primary navigation in their designed positions",
+        action:"the background and frame resolve first, then the logo, title and menu items enter in a short hierarchy-led stagger" },
+      { role:"once", dur:4, framing:"screen", angle:"flat", motion:["locked"], transIn:"match",
+        scene:"the selected menu item and its destination layout sharing the same fixed screen space",
+        action:"focus moves to the chosen item, shared elements hold position and the outgoing content slides or masks into the destination screen" },
+      { role:"once", dur:4, framing:"screen", angle:"flat", motion:["locked"], transIn:"cut",
+        scene:"a detail panel, submenu or modal open over the destination layout without changing the viewport",
+        action:"the panel expands from its trigger, supporting icons and labels stagger into place, and focus settles on the first control" },
+      { role:"once", dur:3, framing:"screen", angle:"flat", motion:["locked"], transIn:"match",
+        scene:"the interface returning to the prior menu with all persistent elements aligned to their original positions",
+        action:"the overlay collapses back to its source, displaced content restores and the previous selection regains focus" }] },
+
+  { id:"ui-transition-lab", group:"UI/UX visual design", name:"UI transition exploration", pv:["transIn","whip"],
+    sum:"A sampler of slide, mask, scale, shared-element and staggered transitions across the same layouts.",
+    guidance:"Use the supplied UI layouts and graphic assets to explore a sequence of distinct transition languages while keeping the interface itself exact. Keep a fixed straight-on viewport and never treat UI as a physical 3D object. Explore directional slide/parallax, masked wipe, scale-and-fade, shared-element continuity and staggered component assembly. Every transition must end on a clean, fully legible source layout; never warp logos, alter words or morph one icon into a different symbol.",
+    output:"Explore multiple screen-space transition styles across the supplied interface states: directional slide, masked wipe, scale-and-fade, shared-element continuity and staggered assembly. Keep the viewport fixed and end every transition on an exact, crisp, fully legible source layout without warping text, logos or icons.",
+    style:"editorial", cadence:"60", atmos:[], endWith:"hold",
+    recipe:[
+      { role:"once", dur:3, framing:"screen", angle:"flat", motion:["locked"], transIn:"cut",
+        scene:"the first and second {ui|interface layouts} connected in one fixed viewport",
+        action:"the outgoing screen shifts laterally with restrained depth parallax while the next screen follows and locks precisely into place" },
+      { role:"once", dur:3, framing:"screen", angle:"flat", motion:["locked"], transIn:"cut",
+        scene:"the next interface state held behind a graphic mask derived from {graphic|the banner or frame language}",
+        action:"the mask wipes across the viewport, revealing content by hierarchy while persistent navigation stays fixed" },
+      { role:"once", dur:3, framing:"screen", angle:"flat", motion:["locked"], transIn:"cut",
+        scene:"a selected card or menu tile linking the current layout to its detail state",
+        action:"the selected element scales into its destination bounds as surrounding content fades and the detail labels settle" },
+      { role:"once", dur:3, framing:"screen", angle:"flat", motion:["locked"], transIn:"match",
+        scene:"two layouts with a logo, title or icon shared between both states",
+        action:"the shared element preserves identity and position continuity while the rest of the interface replaces around it" },
+      { role:"once", dur:3, framing:"screen", angle:"flat", motion:["locked"], transIn:"cut",
+        scene:"the final complete interface layout empty for one beat before its component system appears",
+        action:"frames, banners, icons and typography assemble in a controlled stagger, then all motion settles on the exact design" }] },
+
+  { id:"ui-graphic-system", group:"UI/UX visual design", name:"Graphic element motion system", pv:["style","editorial"],
+    sum:"Give logos, titles, banners and icons a shared motion language, then assemble the full layout.",
+    guidance:"Treat each uploaded logo, title, icon, banner and graphic as an exact flat asset. Design a consistent motion system across all of them: shared easing, offsets, overshoot limits, masking logic and stagger rhythm. Give each asset type its own readable entrance, then assemble the supplied UI layout. Preserve alpha edges, aspect ratios, colours, typography and icon geometry; do not redraw or invent replacement graphics.",
+    output:"Build a consistent 2D motion system for the supplied logo, typography, banners, icons and interface layout. Preserve every asset's exact design, aspect ratio, colour, lettering and geometry. Use shared easing, masking and stagger rhythm, ending with all elements assembled in their specified layout.",
+    style:"editorial", cadence:"60", atmos:[], endWith:"hold",
+    recipe:[
+      { role:"once", dur:3, framing:"screen", angle:"flat", motion:["locked"], transIn:"fade-black",
+        scene:"{logo|the logo} isolated at its intended final size on the interface background",
+        action:"the logo reveals through a clean shape mask with a restrained scale overshoot, then locks sharp and still" },
+      { role:"once", dur:3, framing:"panel", angle:"flat", motion:["locked"], transIn:"cut",
+        scene:"{text|the title treatment} aligned to its final typography grid with no letterform changes",
+        action:"the title resolves by line or word in reading order using the same easing, then holds fully legible" },
+      { role:"once", dur:3, framing:"screen", angle:"flat", motion:["locked"], transIn:"cut",
+        scene:"{graphic|the banner and supporting graphic elements} in their final screen-space bounds",
+        action:"the banner extends from its anchor edge while secondary shapes follow in a short layered stagger" },
+      { role:"once", dur:3, framing:"panel", angle:"flat", motion:["locked"], transIn:"cut",
+        scene:"{icon|the icon set} arranged on its designed grid at exact size and spacing",
+        action:"icons enter in interaction order with small position and opacity offsets, never rotating or morphing their symbols" },
+      { role:"once", dur:3, framing:"screen", angle:"flat", motion:["locked"], transIn:"match",
+        scene:"{ui|the complete interface layout} with logo, title, banners and icons in their supplied positions",
+        action:"all element families assemble using the shared motion rules and settle together into a clean final hold" }] },
+
+  { id:"ui-logo-title", group:"UI/UX visual design", name:"Logo & title package", pv:["light","gradient"],
+    sum:"A brand-safe logo, title, banner and end-card sequence for menus, events or feature launches.",
+    guidance:"Use logo, text and banner references as exact brand assets. Build a concise title package that introduces the environment or colour field, reveals the logo without distortion, brings in the exact title text, adds the supplied banner or supporting graphic, and resolves to the provided UI or end-card layout. Keep every word readable and every mark on model.",
+    output:"Create a concise brand-safe title package from the supplied logo, exact text treatment, banners and end-card layout. Preserve all lettering, mark geometry, colours and spacing; use masks, opacity, restrained scale and layered 2D motion without distorting the assets.",
+    style:"editorial", cadence:"60", atmos:[], endWith:"hold",
+    recipe:[
+      { role:"once", dur:3, framing:"screen", angle:"flat", motion:["locked"], transIn:"fade-black",
+        scene:"the supplied style field or interface background established with no foreground graphics",
+        action:"a restrained colour or shape transition opens the field and creates space for the brand mark" },
+      { role:"once", dur:4, framing:"screen", angle:"flat", motion:["locked"], transIn:"bloom",
+        scene:"{logo|the logo} centred or aligned exactly as designed with clear safe space",
+        action:"the mark reveals through its own silhouette and settles without warping, redrawing or changing proportions" },
+      { role:"once", dur:4, framing:"screen", angle:"flat", motion:["locked"], transIn:"match",
+        scene:"{text|the exact title treatment} joined by {graphic|the supporting banner or frame}",
+        action:"the title enters in reading order, the banner follows from its anchor edge and both settle into the supplied lockup" },
+      { role:"once", dur:3, framing:"screen", angle:"flat", motion:["locked"], transIn:"dissolve",
+        scene:"{ui|the complete menu, event card or end-card layout} held clean and fully legible",
+        action:"secondary icons and accents finish their stagger, then every element holds still for readability" }] },
+
+  { id:"ui-hud-motion", group:"UI/UX visual design", name:"HUD motion pass", pv:["framing","panel"],
+    sum:"Animate status bars, counters, notifications, ability icons and contextual panels as a coherent HUD system.",
+    guidance:"Read the UI references as a HUD system and keep all components in their exact screen anchors. Demonstrate entrance, value change, selection or cooldown feedback, notification expansion and exit states. Use the supplied icons, text and graphics without changing their meaning. Keep a fixed transparent or neutral backing, avoid camera motion, and prioritize glanceable timing and legibility.",
+    output:"Animate the supplied HUD as a coherent screen-space system while preserving exact anchors, text, icon meaning, colours and layout. Demonstrate entrance, value change, selection or cooldown feedback, notification expansion and clean exit with glanceable timing and no camera movement.",
+    style:"editorial", cadence:"60", atmos:[], endWith:"hold",
+    recipe:[
+      { role:"once", dur:3, framing:"screen", angle:"flat", motion:["locked"], transIn:"cut",
+        scene:"{ui|the complete HUD layout} on a neutral backing with every component at its designed screen anchor",
+        action:"major HUD regions enter from their nearest screen edge while fixed reticles and central elements fade into place" },
+      { role:"once", dur:4, framing:"panel", angle:"flat", motion:["locked"], transIn:"cut",
+        scene:"{icon|the ability or inventory icons} with counters, bars and labels at their exact final scale",
+        action:"one value changes, a selection or cooldown state responds, and feedback resolves without shifting neighbouring elements" },
+      { role:"once", dur:4, framing:"panel", angle:"flat", motion:["locked"], transIn:"cut",
+        scene:"{graphic|a notification banner or contextual panel} connected to its source icon or screen edge",
+        action:"the notification expands from its anchor, exact text and icon content appear in hierarchy, then the panel contracts cleanly" },
+      { role:"once", dur:4, framing:"screen", angle:"flat", motion:["locked"], transIn:"match",
+        scene:"the complete HUD returned to its base state with all anchors and spacing restored",
+        action:"temporary feedback clears in reverse hierarchy and optional regions exit without moving persistent information" }] },
 
   /* ---- product & design ---- */
   { id:"turntable", group:"Product", name:"Product turntable", pv:["motion","turntable"],
@@ -1279,7 +1684,10 @@ function expandPreset(p) {
   const beats = [];
   for (const b of p.recipe) {
     if (b.role !== "per") { beats.push({ beat:b, ref:null }); continue; }
-    const matches = state.refs.filter(r => r.cat === b.cat);
+    let matches = state.refs.filter(r => r.cat === b.cat);
+    // Untagged uploads can still preview a reference-driven recipe before the
+    // vision pass assigns their production type.
+    if (!matches.length) matches = state.refs.filter(r => r.cat === "auto");
     // With nothing uploaded a `per` beat still fires once, on its fallbacks.
     if (!matches.length) beats.push({ beat:b, ref:null });
     else for (const r of matches) beats.push({ beat:b, ref:r });
@@ -1305,12 +1713,12 @@ function expandPreset(p) {
 
 const SHOT_FIELDS = ["scene","action","framing","angle","lens","dof","motion","speed","light","temp","transIn","transOut"];
 
-/* Four steps. References come first so a preset can write its shot text around
+/* Three steps. References come first so a preset can write its shot text around
  * whatever was uploaded, and every per-shot control lives on one page behind
  * progressive disclosure rather than a page each. */
 const STEPS = [
   { id:"refs", name:"References", q:"What are you working with?",
-    sub:"Drop in the images you'll feed the model, and say what each one is for. They get read for you on the next step. Skip this if you're working from text alone." },
+    sub:"Drop in the images you'll feed the model. Leave Auto detect selected or tag each as a character, VFX sheet, storyboard, UI layout, logo, text, icon, graphic or another role. Skip this if you're working from text alone." },
   { id:"preset", name:"Preset", q:"What kind of animation?",
     sub:"Pick the shape of the piece and it gets written for you — the model looks at your references and builds the shot list against them: subjects, framing, lighting, pacing and timing. You fine-tune it on the next step." },
   { id:"shots", name:"Shots", q:"Your shot list",
@@ -1321,7 +1729,8 @@ const STEPS = [
 const SHOT_SETTINGS = ["framing","angle","lens","dof","motion","speed","light","temp","transIn","transOut"];
 
 /** Display order for the preset groups, independent of definition order. */
-const GROUP_ORDER = ["Game cinematic","Game animation","Game marketing","Product",
+const GROUP_ORDER = ["Game cinematic","Game animation","VFX exploration","Storyboard & animation","Game marketing",
+  "UI/UX visual design","Product",
   "Architecture","Automotive","Fashion","Food","Abstract","Blank"];
 const LOOK_SETTINGS = ["style","cadence","atmos"];
 
@@ -1436,6 +1845,19 @@ P.framing = id => {
       figure({ top:m.t, h:m.h }));
   }
   if (id === "ecu") return svg(bg() + glow(50, 40, 54, "gW", .18) + face());
+  if (id === "screen") return svg(bg("bgLow") +
+    `<rect x="8" y="12" width="84" height="76" rx="4" fill="#30313a" stroke="#686974"/>` +
+    `<rect x="14" y="18" width="18" height="7" rx="2" fill="#e63920"/>` +
+    `<rect x="14" y="32" width="30" height="4" rx="2" fill="#d7d7df"/>` +
+    `<rect x="14" y="42" width="24" height="4" rx="2" fill="#777984"/>` +
+    `<rect x="52" y="24" width="31" height="48" rx="3" fill="#484a55"/>` +
+    `<rect x="14" y="68" width="26" height="8" rx="3" fill="#60626d"/>`);
+  if (id === "panel") return svg(bg("bgLow") +
+    `<rect x="14" y="15" width="72" height="70" rx="5" fill="#3a3b45" stroke="#777985"/>` +
+    `<rect x="22" y="24" width="24" height="6" rx="2" fill="#e63920"/>` +
+    `<rect x="22" y="39" width="56" height="7" rx="2" fill="#666873"/>` +
+    `<rect x="22" y="51" width="44" height="7" rx="2" fill="#555762"/>` +
+    `<rect x="22" y="67" width="20" height="8" rx="3" fill="#d7d7df"/>`);
   if (id === "hero") return svg(bg() + ground(74) + shadow(48, 75, 26, 4.5) + box({ cx:48, cy:56, s:40, top:.42, side:.6 }));
   if (id === "full") return svg(bg() + ground(76) + shadow(50, 77, 24, 4) + box({ cy:58, s:38, top:.3, side:.35 }) +
     `<rect x="10" y="10" width="80" height="80" fill="none" stroke="#6a6a76" stroke-width=".8" stroke-dasharray="3 3" opacity=".7"/>`);
@@ -1457,6 +1879,7 @@ P.angle = id => {
     elev45:{box:{cy:57,s:34,top:.62,side:.58},gy:70,cam:[13,28,34]},
     table:{box:{cy:54,s:34,top:-.06,side:.4},gy:70,cam:[13,66,-4]},
   };
+  if (id === "flat") return P.framing("screen");
   if (id === "top") return svg(bg() + ground(88) +
     `<g transform="translate(50 54) rotate(-18)"><rect x="-21" y="-21" width="42" height="42" rx="2.5" fill="${TOP}"/><rect x="-21" y="19" width="42" height="7" fill="${FRONT}"/></g>` +
     shadow(50, 82, 25, 4) + cam(50, 12, 90));
@@ -1845,15 +2268,22 @@ const PROVIDERS = {
 };
 
 const VISION_PROMPT =
-  "Identify what is in this reference image, for use in a video-generation prompt. " +
+  "Identify what is in this reference image and what production role it serves, for use in a video-generation prompt. " +
   "Reply with nothing but JSON in this exact shape:\n" +
-  '{"subject":"...","elements":["..."],"detail":"..."}\n' +
+  '{"subject":"...","referenceType":"storyboard","elements":["..."],"detail":"...","sequence":["..."]}\n' +
   "subject: 2-6 words naming the main thing, no leading article, no punctuation. " +
-  'Use words a director would use ("orc warchief in iron plate", "matte-black cordless drill").\n' +
+  'Use words a director would use ("orc warchief in iron plate", "six-panel attack storyboard", "blue plasma burst VFX sheet").\n' +
+  `referenceType: exactly one of ${REF_CAT_IDS.filter(x => x !== "auto").join(", ")}. ` +
+  "Use storyboard for multi-panel shot boards, vfx for effect concept/progression sheets, and animation for pose sheets, keyframes or motion studies.\n" +
+  "Use ui for full interface screens, menus, wireframes or layout systems; logo for brand marks; text for title or typography treatments; " +
+  "icon for individual symbols; and graphic for banners, cards, frames, badges or decorative 2D elements.\n" +
   "elements: 3 to 6 short phrases, each 1-4 words, listing the distinct things actually visible " +
   "in the scene — objects, surroundings, notable materials or props. No duplicates of subject.\n" +
   "detail: one sentence, 25 words maximum, on materials, palette and mood. " +
-  "Describe only what is visible; never mention that this is an image or a render.";
+  "Describe only what is visible; never mention that this is an image or a render.\n" +
+  "sequence: an array in visual reading order, maximum 8 entries. For a storyboard, summarize each panel's framing and action. " +
+  "For VFX or animation sheets, summarize effect stages or key poses. For a UI layout sheet, list distinct screens, menu states or interaction states in intended flow order. " +
+  "For other reference types, return an empty array.";
 
 const vision = { status:"idle", note:"", done:0, of:0, provider:"gemini" };
 
@@ -1948,7 +2378,7 @@ async function callVision(images, prompt, maxTokens = 400, temp = 0.2) {
   return null;
 }
 
-/** Describe one image. Returns {subject, elements, detail} or null. */
+/** Describe one image. Returns its content, production type and ordered beats. */
 async function captionImage(url) {
   const parts = dataUrlParts(url);
   if (!parts) { vision.note = "That image couldn't be read."; return null; }
@@ -1957,8 +2387,10 @@ async function captionImage(url) {
   if (!got.subject) { vision.note = "The model didn't return a usable description."; return null; }
   return {
     subject: tidySubject(got.subject),
+    referenceType: tidyRefType(got.referenceType),
     elements: tidyElements(got.elements),
     detail: tidyDetail(got.detail),
+    sequence: tidySequence(got.sequence),
   };
 }
 
@@ -1981,6 +2413,17 @@ function tidyElements(a) {
     .filter(x => x && x.length <= 40)
     .slice(0, 6);
 }
+function tidyRefType(s) {
+  const id = String(s || "").trim().toLowerCase();
+  return REF_CAT_IDS.includes(id) && id !== "auto" ? id : null;
+}
+function tidySequence(a) {
+  return (Array.isArray(a) ? a : [])
+    .map(x => String(x || "").trim().replace(/\s+/g, " ").replace(/^\d+[.)]\s*/, ""))
+    .filter(Boolean)
+    .map(x => x.slice(0, 160))
+    .slice(0, MAX_SHOTS);
+}
 
 /* ===========================================================================
  * 4. State
@@ -1989,13 +2432,15 @@ function tidyElements(a) {
 const newShot = dur => ({ dur, scene:"", action:"", framing:null, angle:null, lens:null, dof:null,
   motion:[], speed:null, light:null, temp:null, transIn:null, transOut:null });
 
-const state = {
+const freshState = () => ({
   step: 0, activeShot: 0, format: "prose", visited: new Set([0]),
   expanded: new Set(), preset: null, openField: null, openGroups: new Set(),
+  presetGroupsInitialized:false,
   refs: [], selectedShot: 0,
   style: null, cadence: null, atmos: [],
   shots: [newShot(5)],
-};
+});
+const state = freshState();
 
 /**
  * Resolve `{category|fallback}` tokens against uploaded references. A matching
@@ -2071,7 +2516,10 @@ function directorPrompt(p) {
     const cat = (REF_CATS.find(c => c[0] === r.cat) || [, "reference"])[1];
     const named = r.subject ? `, which the user named "${r.subject}"` : "";
     const reads = r.auto ? `, reading as ${autoPhrase(r.auto)}` : "";
-    return `Image ${i + 1} — tagged "${cat}"${named}${reads}.`;
+    const note = r.notes ? ` User direction: ${r.notes.trim()}` : "";
+    const seq = r.sequence && r.sequence.length ? ` Recognized order: ${r.sequence.join(" → ")}.` : "";
+    const detect = r.cat === "auto" ? " Infer its production type from the content." : " Treat this user-selected tag as authoritative.";
+    return `Image ${i + 1} — tagged "${cat}"${named}${reads}.${detect}${note}${seq}`;
   }).join("\n");
 
   const beats = p.recipe.map((b, i) =>
@@ -2085,29 +2533,43 @@ function directorPrompt(p) {
     `PRESET: ${p.name} — ${p.sum}`,
     "Its intended beats:",
     beats,
+    p.guidance ? `Preset-specific direction: ${p.guidance}` : "",
     "",
     state.refs.length
       ? `THE ATTACHED REFERENCES, in order:\n${refLines}`
       : "No references were uploaded. Write the sequence from the preset alone.",
     "",
+    "REFERENCE ROLE RULES:",
+    "- A storyboard is an ordered shot plan. Read every panel in normal visual reading order. Preserve panel order, framing, angle, blocking, screen direction, action and cuts. Do not use its sketch style unless it is also tagged Style.",
+    "- A VFX sheet is effect design and timing reference, not a background or a flat object. Infer anticipation, emission, travel, impact, secondary motion and decay from the visible stages.",
+    "- An animation or pose sheet is an ordered set of key poses. Preserve contacts, silhouette, facing direction and motion arcs; interpolate between the keys.",
+    "- Character references are authoritative for identity, costume, proportions, materials and colour. Cast them into storyboard or animation roles while preserving the source sequence.",
+    "- A UI layout is an exact screen state and hierarchy. Preserve viewport, component bounds, spacing, alignment and navigation relationships; infer a flow only from visible labels, hierarchy and user notes.",
+    "- Logo, text, icon and graphic references are exact production assets. Preserve words, letterforms, mark geometry, icon meaning, aspect ratio and colour. Animate them in screen space; never redraw, replace, warp or hallucinate their content.",
+    "- For UI/UX presets keep the viewport straight-on and fixed, with no camera movement or invented 3D environment. Transitions must resolve to crisp, fully legible source layouts.",
+    "- When the preset asks for a graybox or empty game level, use a sparse neutral floor plane, grid and simple scale blocks only; do not invent a decorated environment.",
+    "",
     `CONSTRAINTS: between 2 and ${MAX_SHOTS} shots. Every duration is a whole number of seconds, ` +
     `at least ${MIN_SHOT}, and they must add up to ${MAX_TOTAL} or less.`,
     "",
     "Reply with nothing but JSON in this exact shape:",
-    '{"refs":[{"subject":"...","elements":["..."],"detail":"..."}],' +
+    '{"refs":[{"subject":"...","referenceType":"storyboard","elements":["..."],"detail":"...","sequence":["..."]}],' +
     '"shots":[{"dur":4,"scene":"...","action":"...","framing":"ws","angle":"low","lens":"35",' +
     '"dof":"deep","motion":["dolly-in"],"speed":"slow","light":"rim","temp":"cool",' +
     '"transIn":"fade-black","transOut":"cut"}]}',
     "",
     "refs: one entry per attached image, in the same order, even if you were given a name already. " +
+    `referenceType is exactly one of ${REF_CAT_IDS.filter(x => x !== "auto").join(", ")}; classify the content even when the user supplied a tag, but the application will preserve a manual tag. ` +
     "subject is 2-6 words naming the main thing, no leading article. elements is 3-6 short phrases " +
     "listing what is actually visible. detail is one sentence, 25 words maximum, on materials, " +
-    "palette and mood. Describe only what you can see; never mention that this is an image or a render.",
+    "palette and mood. sequence is up to 8 concise entries in visual reading order: storyboard panels, VFX stages, animation key poses, or UI screens and interaction states; otherwise []. " +
+    "Describe only what you can see; never mention that this is an image or a render.",
     "",
     "shots: the sequence itself. `scene` says what is in frame — refer to the reference subjects in " +
     'the words you gave them, and write "(ref N)" directly after a subject drawn from image N so the ' +
     "video model binds the words to that image. `action` is one clause on what moves during the shot. " +
-    "Follow the preset's intent, but write for these particular references rather than a generic version.",
+    "Follow the preset's intent, but write for these particular references rather than a generic version. " +
+    "For storyboard presets, make one shot per legible panel in reading order up to the shot limit; never collapse a multi-panel board into one generic shot.",
     "",
     "Every field below must be one of its listed ids, spelled exactly, or left out. " +
     `motion is an array of at most ${FIELD.motion.max} ids.`,
@@ -2170,6 +2632,9 @@ async function directFromPreset(p) {
       if (d.subject) r.subject = tidySubject(d.subject);
       if (d.detail) r.detail = tidyDetail(d.detail);
       if (Array.isArray(d.elements)) r.elements = tidyElements(d.elements);
+      if (Array.isArray(d.sequence)) r.sequence = tidySequence(d.sequence);
+      const suggested = tidyRefType(d.referenceType);
+      if (suggested && !r.catLocked) r.cat = suggested;
     });
   }
 
@@ -2587,6 +3052,7 @@ function promptBlock() {
 
 /** Recompute the prompt text only — cheap enough to run on every keystroke. */
 function refreshPrompt() {
+  scheduleHistorySave();
   const out = document.getElementById("output");
   if (!out) return;
   const text = promptText();
@@ -2604,10 +3070,14 @@ function renderPresets() {
   const groups = [...new Set(PRESETS.map(p => p.group))]
     .sort((a, b) => GROUP_ORDER.indexOf(a) - GROUP_ORDER.indexOf(b));
   // Thirty-odd presets only stay scannable collapsed; the first group and any
-  // group holding the current pick start open.
-  if (!state.openGroups.size) state.openGroups.add(groups[0]);
+  // group holding a restored pick starts open. After that, the user's open /
+  // closed choice wins — re-adding the selected group on every render made
+  // that group impossible to collapse.
   const cur = PRESETS.find(x => x.id === state.preset);
-  if (cur) state.openGroups.add(cur.group);
+  if (!state.presetGroupsInitialized) {
+    state.openGroups.add(cur ? cur.group : groups[0]);
+    state.presetGroupsInitialized = true;
+  }
   for (const gname of groups) {
     const members = PRESETS.filter(x => x.group === gname);
     const open = state.openGroups.has(gname);
@@ -2678,15 +3148,15 @@ function visionPanel() {
     box.appendChild(row);
 
     box.appendChild(el("p", "hint",
-      `Your images are read for you. Pick a preset on the next step and it names every reference ` +
-      `and writes the shot list from them &mdash; nothing to set up. Describe now if you'd rather ` +
-      `see the names before choosing.`));
+      `Your images are read for you. Pick a preset on the next step and it identifies each reference, ` +
+      `reads ordered panels, VFX stages or poses, and writes the shot list from them &mdash; nothing to set up. ` +
+      `Describe now if you'd rather check that reading before choosing.`));
     if (vision.note) box.appendChild(el("p", "hint", `<span class="vwarn">${vision.note}</span>`));
     return box;
   }
 
   const head = el("div", "vhead");
-  head.appendChild(el("span", "vlabel", "Identify scene elements"));
+  head.appendChild(el("span", "vlabel", "Identify type, elements & sequence"));
   if (vision.status === "working") head.appendChild(el("span", "vpct", `${vision.done} of ${vision.of}`));
   const seg = el("div", "seg");
   for (const [pid, def] of Object.entries(PROVIDERS)) {
@@ -2726,7 +3196,7 @@ function visionPanel() {
   box.appendChild(el("p", "hint",
     hasKey()
       ? `Key saved in this browser. Uses <code>${P.models[0]}</code>. ` +
-        `Naming your images here is optional &mdash; whichever preset you pick next reads them all anyway ` +
+        `Naming and tagging your images here is optional &mdash; whichever preset you pick next reads them all anyway ` +
         `and writes the shot list from them. Describe now if you'd rather check the names first. ` +
         `Images are sent to ${P.label} only when you press Describe, or when you pick a preset.`
       : `Paste a ${P.label} key &mdash; ${P.hint}. Stored in this browser only. With one, the preset you ` +
@@ -2772,6 +3242,8 @@ async function describeOne(r) {
     r.subject = got.subject;
     r.detail = got.detail || "";
     r.elements = got.elements || [];
+    r.sequence = got.sequence || [];
+    if (got.referenceType && !r.catLocked) r.cat = got.referenceType;
     renderRail();
     return true;
   }
@@ -2806,16 +3278,22 @@ function renderRefs() {
         const b = el("button", "chip", clabel);
         b.type = "button";
         b.setAttribute("aria-pressed", String(r.cat === cid));
-        b.addEventListener("click", () => { r.cat = cid; renderStep(); refreshPrompt(); });
+        b.addEventListener("click", () => {
+          r.cat = cid;
+          r.catLocked = cid !== "auto";
+          renderStep(); refreshPrompt();
+        });
         cats.appendChild(b);
       }
       const body = card.querySelector(".body");
 
       // The only thing pixels can't tell us: what the thing actually is.
       const subj = Object.assign(document.createElement("input"), { type:"text", value:r.subject });
-      subj.placeholder = { character:"orc warchief", environment:"fortress courtyard",
+      subj.placeholder = { auto:"leave blank to identify automatically", character:"orc warchief", environment:"fortress courtyard",
         product:"cordless drill", style:"key art", lighting:"lighting setup",
-        start:"opening frame" }[r.cat] || "what is it?";
+        start:"opening frame", vfx:"blue plasma impact sheet", storyboard:"six-panel chase storyboard",
+        animation:"sword attack pose sequence", ui:"main menu layout", logo:"studio logo",
+        text:"season title treatment", icon:"inventory icon", graphic:"event banner" }[r.cat] || "what is it?";
       subj.className = "refsubject";
       subj.addEventListener("input", () => { r.subject = subj.value; paintPhrase(); refreshPrompt(); });
       body.appendChild(el("span", "reflabel", "What is it?"));
@@ -2844,6 +3322,34 @@ function renderRefs() {
       if (r.detail) {
         body.appendChild(el("span", "reflabel", "Description"));
         body.appendChild(el("p", "refdetail", r.detail));
+      }
+      if (r.sequence && r.sequence.length) {
+        body.appendChild(el("span", "reflabel", "Recognized sequence"));
+        const list = el("ol", "refsequence");
+        for (const beat of r.sequence) {
+          const li = document.createElement("li");
+          li.textContent = beat;
+          list.appendChild(li);
+        }
+        body.appendChild(list);
+      }
+      if (["auto","vfx","storyboard","animation","ui","logo","text","icon","graphic"].includes(r.cat)) {
+        body.appendChild(el("span", "reflabel", "Sequence / direction notes (optional)"));
+        const notes = Object.assign(document.createElement("textarea"), {
+          value:r.notes || "", rows:3,
+          placeholder:r.cat === "vfx"
+            ? "Example: cast from left to right, hold the impact, then dissipate"
+            : r.cat === "animation"
+              ? "Example: poses read left to right; keep the planted foot fixed"
+              : r.cat === "ui"
+                ? "Example: main menu → loadout → detail panel → back to menu"
+                : ["logo","text","icon","graphic"].includes(r.cat)
+                  ? "Example: reveal after the banner, overshoot slightly, then lock into place"
+                  : "Example: panels read left to right, then continue on the second row",
+        });
+        notes.className = "refnotes";
+        notes.addEventListener("input", () => { r.notes = notes.value; refreshPrompt(); });
+        body.appendChild(notes);
       }
 
       // Read off the image itself — no input required.
@@ -2922,7 +3428,10 @@ function addFiles(files) {
     if (!file.type.startsWith("image/")) continue;
     // Claim the slot up front. Reads and analyses finish out of order, and ref
     // numbers are cited in the prompt, so they must follow the upload order.
-    const ref = { url:"", name:file.name, cat:"character", subject:"", auto:null, detail:"", elements:[], busy:false };
+    const ref = {
+      url:"", name:file.name, cat:"auto", catLocked:false, subject:"", auto:null,
+      detail:"", elements:[], sequence:[], notes:"", busy:false,
+    };
     state.refs.push(ref);
     const reader = new FileReader();
     reader.onload = () => downscale(reader.result).then(url => {
@@ -2968,6 +3477,7 @@ function joinList(a) {
   return a.slice(0, -1).join(", ") + " and " + a[a.length - 1];
 }
 const startRef = () => state.refs.findIndex(r => r.cat === "start");
+const selectedPreset = () => PRESETS.find(p => p.id === state.preset);
 
 /** Camera + lighting sentences for one shot. */
 function shotBody(sh) {
@@ -3004,7 +3514,9 @@ function buildProse() {
       const cat = REF_CATS.find(c => c[0] === r.cat);
       return `  ref ${i + 1} — ${cat[1]}: ${describeRef(r)}` +
         (r.detail ? `\n      ${r.detail}` : "") +
-        (r.elements && r.elements.length ? `\n      in scene: ${r.elements.join(", ")}` : "");
+        (r.elements && r.elements.length ? `\n      in scene: ${r.elements.join(", ")}` : "") +
+        (r.sequence && r.sequence.length ? `\n      ordered beats: ${r.sequence.join(" → ")}` : "") +
+        (r.notes ? `\n      user direction: ${r.notes.trim()}` : "");
     }).join("\n"));
     // Group by category, or three character refs read as three near-identical
     // clauses ("the character to ref 1, the character to ref 2, …").
@@ -3025,6 +3537,8 @@ function buildProse() {
     ? `Animate from the provided reference images${sr >= 0 ? `, opening on ref ${sr + 1}` : ""}. ` +
       "Preserve the design, materials and colour of the references."
     : "Animate from the provided reference image. Preserve its design, materials and colour.");
+  const preset = selectedPreset();
+  if (preset && preset.output) paras.push(sentence(preset.output));
 
   state.shots.forEach((sh, i) => {
     const lead = [];
@@ -3078,11 +3592,15 @@ function buildLabeled() {
       L.push(`  ref ${i + 1} — ${cat[1]}: ${describeRef(r)}`);
       if (r.detail) L.push(`      ${r.detail}`);
       if (r.elements && r.elements.length) L.push(`      in scene: ${r.elements.join(", ")}`);
+      if (r.sequence && r.sequence.length) L.push(`      ordered beats: ${r.sequence.join(" → ")}`);
+      if (r.notes) L.push(`      user direction: ${r.notes.trim()}`);
     });
   }
   L.push("Source: provided reference images" +
     (startRef() >= 0 ? ` — open on ref ${startRef() + 1}` : "") +
     " — preserve design, materials and colour");
+  const preset = selectedPreset();
+  if (preset && preset.output) L.push("Direction: " + preset.output);
   L.push(`Shots: ${state.shots.length} (${state.shots.map(s => s.dur + "s").join(" + ")} = ${totalDur()}s)`);
 
   const PER = [["scene","Scene"],["action","Action"],["framing","Shot"],["angle","Angle"],["lens","Lens"],
@@ -3113,6 +3631,350 @@ function buildLabeled() {
 
 const promptText = () => state.format === "prose" ? buildProse() : buildLabeled();
 
+/* ===========================================================================
+ * 7. Local job history
+ *
+ * IndexedDB keeps the downscaled reference images with each prompt without
+ * forcing data URLs through localStorage's small string quota. Nothing leaves
+ * this browser. The current job id alone is kept in localStorage so a refresh
+ * can reopen the same draft.
+ * ======================================================================== */
+
+const HISTORY_DB_NAME = "omni-animate-history";
+const HISTORY_STORE = "jobs";
+const HISTORY_CURRENT = "omni-animate-current-job";
+const HISTORY_LIMIT = 20;
+let historyDb = null;
+let historyReady = false;
+let historyError = "";
+let historyTimer = 0;
+let historyInitPromise = null;
+let currentJobId = "";
+let currentJobCreatedAt = 0;
+let saveChain = Promise.resolve();
+
+function makeJobId() {
+  if (globalThis.crypto && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  return `job-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function hasJobContent() {
+  return state.refs.some(r => r.url) || !!state.preset ||
+    state.shots.some(s => s.scene.trim() || s.action.trim()) ||
+    !!state.style || !!state.cadence || state.atmos.length > 0;
+}
+
+function stateForHistory() {
+  return {
+    step:state.step, activeShot:state.activeShot, format:state.format,
+    visited:[...state.visited], expanded:[...state.expanded], preset:state.preset,
+    openGroups:[...state.openGroups], presetGroupsInitialized:state.presetGroupsInitialized,
+    selectedShot:state.selectedShot,
+    refs:state.refs.filter(r => r.url).map(r => ({
+      ...r, busy:false, elements:[...(r.elements || [])], sequence:[...(r.sequence || [])],
+      auto:r.auto ? { ...r.auto, swatches:[...(r.auto.swatches || [])] } : null,
+    })),
+    style:state.style, cadence:state.cadence, atmos:[...state.atmos],
+    shots:state.shots.map(s => ({ ...s, motion:[...(s.motion || [])] })),
+  };
+}
+
+function historyJobTitle() {
+  const preset = selectedPreset();
+  const ref = state.refs.find(r => r.subject && r.subject.trim()) || state.refs.find(r => r.name);
+  const subject = ref
+    ? ((ref.subject || ref.name || "").trim().replace(/\.[a-z0-9]+$/i, ""))
+    : "";
+  if (preset && subject) return `${preset.name} · ${subject}`;
+  return preset ? preset.name : subject || "Untitled prompt";
+}
+
+function currentJobRecord() {
+  const now = Date.now();
+  if (!currentJobId) currentJobId = makeJobId();
+  if (!currentJobCreatedAt) currentJobCreatedAt = now;
+  return {
+    id:currentJobId, createdAt:currentJobCreatedAt, updatedAt:now,
+    title:historyJobTitle(), prompt:promptText(), data:stateForHistory(),
+  };
+}
+
+function openHistoryDb() {
+  return new Promise((resolve, reject) => {
+    if (!("indexedDB" in globalThis)) return reject(new Error("IndexedDB unavailable"));
+    const req = indexedDB.open(HISTORY_DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(HISTORY_STORE)) {
+        const store = db.createObjectStore(HISTORY_STORE, { keyPath:"id" });
+        store.createIndex("updatedAt", "updatedAt");
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error || new Error("Could not open history"));
+  });
+}
+
+function historyGet(id) {
+  return new Promise((resolve, reject) => {
+    const tx = historyDb.transaction(HISTORY_STORE, "readonly");
+    const req = tx.objectStore(HISTORY_STORE).get(id);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function historyAll() {
+  return new Promise((resolve, reject) => {
+    const tx = historyDb.transaction(HISTORY_STORE, "readonly");
+    const req = tx.objectStore(HISTORY_STORE).getAll();
+    req.onsuccess = () => resolve((req.result || []).sort((a, b) => b.updatedAt - a.updatedAt));
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function historyPut(record) {
+  return new Promise((resolve, reject) => {
+    const tx = historyDb.transaction(HISTORY_STORE, "readwrite");
+    tx.objectStore(HISTORY_STORE).put(record);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error || new Error("Could not save history"));
+    tx.onabort = () => reject(tx.error || new Error("History save was aborted"));
+  });
+}
+
+function historyDelete(id) {
+  return new Promise((resolve, reject) => {
+    const tx = historyDb.transaction(HISTORY_STORE, "readwrite");
+    tx.objectStore(HISTORY_STORE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error || new Error("Could not delete history"));
+  });
+}
+
+async function pruneHistory() {
+  const jobs = await historyAll();
+  for (const old of jobs.slice(HISTORY_LIMIT)) await historyDelete(old.id);
+}
+
+function rememberCurrentId() {
+  try { localStorage.setItem(HISTORY_CURRENT, currentJobId); } catch { /* private browsing */ }
+}
+
+function readCurrentId() {
+  try { return localStorage.getItem(HISTORY_CURRENT) || ""; }
+  catch { return ""; }
+}
+
+async function updateHistoryCount() {
+  const count = document.getElementById("historyCount");
+  if (!count) return;
+  if (!historyDb) { count.textContent = "0"; return; }
+  try { count.textContent = String(Math.min(HISTORY_LIMIT, (await historyAll()).length)); }
+  catch { count.textContent = "0"; }
+}
+
+function scheduleHistorySave() {
+  if (!historyReady || !historyDb || !hasJobContent()) return;
+  clearTimeout(historyTimer);
+  historyTimer = setTimeout(() => saveCurrentJob(), 350);
+}
+
+async function saveCurrentJob() {
+  clearTimeout(historyTimer);
+  if (!historyReady || !historyDb || !hasJobContent()) return;
+  const record = currentJobRecord();
+  rememberCurrentId();
+  saveChain = saveChain.catch(() => {}).then(async () => {
+    await historyPut(record);
+    await pruneHistory();
+    await updateHistoryCount();
+  }).catch(err => {
+    historyError = "This browser could not save local history.";
+    console.warn("Omni-Animate history save failed", err);
+  });
+  return saveChain;
+}
+
+function restoreHistoryState(saved) {
+  const src = saved || {};
+  const next = freshState();
+  const shots = Array.isArray(src.shots) && src.shots.length ? src.shots : next.shots;
+  next.step = Math.max(0, Math.min(STEPS.length - 1, Number(src.step) || 0));
+  next.activeShot = Math.max(0, Number(src.activeShot) || 0);
+  next.format = src.format === "labeled" ? "labeled" : "prose";
+  next.visited = new Set(Array.isArray(src.visited) ? src.visited : [0]);
+  next.visited.add(next.step);
+  next.expanded = new Set(Array.isArray(src.expanded) ? src.expanded : []);
+  next.preset = PRESETS.some(p => p.id === src.preset) ? src.preset : null;
+  next.openGroups = new Set(Array.isArray(src.openGroups) ? src.openGroups : []);
+  next.presetGroupsInitialized = src.presetGroupsInitialized === true || Array.isArray(src.openGroups);
+  next.openField = null;
+  next.refs = (Array.isArray(src.refs) ? src.refs : []).filter(r => r && r.url).map(r => ({
+    ...r, busy:false, cat:REF_CAT_IDS.includes(r.cat) ? r.cat : "auto",
+    catLocked:!!r.catLocked, elements:[...(r.elements || [])], sequence:[...(r.sequence || [])],
+    notes:String(r.notes || ""),
+  }));
+  next.selectedShot = src.selectedShot == null ? 0 : Math.max(0, Number(src.selectedShot) || 0);
+  next.style = fieldIds("style").includes(src.style) ? src.style : null;
+  next.cadence = fieldIds("cadence").includes(src.cadence) ? src.cadence : null;
+  next.atmos = (Array.isArray(src.atmos) ? src.atmos : []).filter(x => fieldIds("atmos").includes(x)).slice(0, FIELD.atmos.max);
+  next.shots = shots.slice(0, MAX_SHOTS).map(sh => Object.assign(
+    newShot(Math.max(MIN_SHOT, Number(sh && sh.dur) || 5)),
+    sh || {},
+    { motion:Array.isArray(sh && sh.motion) ? [...sh.motion] : [] },
+  ));
+  next.activeShot = Math.min(next.activeShot, next.shots.length - 1);
+  next.selectedShot = Math.min(next.selectedShot, next.shots.length - 1);
+  Object.assign(state, next);
+  rebalance();
+  directRun++;
+  Object.assign(vision, { status:"idle", note:"", done:0, of:0 });
+}
+
+function resetToNewJob() {
+  directRun++;
+  Object.assign(state, freshState());
+  Object.assign(vision, { status:"idle", note:"", done:0, of:0 });
+  currentJobId = makeJobId();
+  currentJobCreatedAt = Date.now();
+  rememberCurrentId();
+  closeHistory();
+  renderStep(true); renderRail();
+  window.scrollTo({ top:0, behavior:"smooth" });
+}
+
+async function startNewPrompt() {
+  await saveCurrentJob();
+  resetToNewJob();
+}
+
+function closeHistory() {
+  document.getElementById("historyModal").hidden = true;
+}
+
+function formatJobDate(ms) {
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      month:"short", day:"numeric", hour:"numeric", minute:"2-digit",
+    }).format(new Date(ms));
+  } catch { return new Date(ms).toLocaleString(); }
+}
+
+async function restoreHistoryJob(id) {
+  await saveCurrentJob();
+  const record = await historyGet(id);
+  if (!record || !record.data) return;
+  restoreHistoryState(record.data);
+  currentJobId = record.id;
+  currentJobCreatedAt = record.createdAt || Date.now();
+  rememberCurrentId();
+  closeHistory();
+  renderStep(true); renderRail();
+  window.scrollTo({ top:0, behavior:"smooth" });
+}
+
+async function renderHistoryList() {
+  const list = document.getElementById("historyList");
+  list.innerHTML = "";
+  if (historyError && !historyDb) {
+    list.appendChild(el("div", "history-empty", historyError));
+    return;
+  }
+  const jobs = historyDb ? await historyAll() : [];
+  if (!jobs.length) {
+    list.appendChild(el("div", "history-empty", "Your prompts and reference images will appear here after you start working."));
+    return;
+  }
+  for (const job of jobs) {
+    const data = job.data || {};
+    const allRefs = (data.refs || []).filter(r => r.url);
+    const refs = allRefs.slice(0, 4);
+    const card = el("article", "history-job");
+    if (refs.length) {
+      const thumbs = el("div", "history-thumbs" + (refs.length === 1 ? " one" : ""));
+      for (const ref of refs) {
+        const img = document.createElement("img");
+        img.src = ref.url;
+        img.alt = ref.subject || ref.name || "Reference";
+        thumbs.appendChild(img);
+      }
+      card.appendChild(thumbs);
+    } else {
+      card.appendChild(el("div", "history-no-thumb", "Text only"));
+    }
+
+    const copy = el("div", "history-copy");
+    const title = el("div", "history-title");
+    const titleText = document.createElement("span");
+    titleText.textContent = job.title || "Untitled prompt";
+    title.appendChild(titleText);
+    if (job.id === currentJobId) title.appendChild(el("span", "history-current", "Current"));
+    copy.appendChild(title);
+    const shotCount = Array.isArray(data.shots) ? data.shots.length : 0;
+    copy.appendChild(el("div", "history-meta",
+      `${formatJobDate(job.updatedAt)} · ${allRefs.length} ref${allRefs.length === 1 ? "" : "s"} · ${shotCount} shot${shotCount === 1 ? "" : "s"}`));
+    const excerpt = el("p", "history-excerpt");
+    excerpt.textContent = job.prompt || "Prompt not written yet";
+    copy.appendChild(excerpt);
+    card.appendChild(copy);
+
+    const actions = el("div", "history-actions");
+    const open = el("button", null, job.id === currentJobId ? "Open now" : "Restore");
+    open.type = "button";
+    open.disabled = job.id === currentJobId;
+    open.addEventListener("click", () => restoreHistoryJob(job.id));
+    actions.appendChild(open);
+    const del = el("button", "danger", "Delete");
+    del.type = "button";
+    del.disabled = job.id === currentJobId;
+    del.title = job.id === currentJobId ? "Start a new prompt before deleting the current job" : "";
+    del.addEventListener("click", async () => {
+      if (!confirm(`Delete "${job.title || "Untitled prompt"}" from this browser?`)) return;
+      await historyDelete(job.id);
+      await updateHistoryCount();
+      await renderHistoryList();
+    });
+    actions.appendChild(del);
+    card.appendChild(actions);
+    list.appendChild(card);
+  }
+}
+
+async function openHistory() {
+  if (historyInitPromise) await historyInitPromise;
+  await saveCurrentJob();
+  document.getElementById("historyModal").hidden = false;
+  await renderHistoryList();
+}
+
+async function initHistory() {
+  try {
+    historyDb = await openHistoryDb();
+    currentJobId = readCurrentId() || makeJobId();
+    const record = await historyGet(currentJobId);
+    if (record && record.data) {
+      restoreHistoryState(record.data);
+      currentJobCreatedAt = record.createdAt || Date.now();
+      renderStep(true); renderRail();
+    } else {
+      currentJobCreatedAt = Date.now();
+      rememberCurrentId();
+    }
+    historyReady = true;
+    await pruneHistory();
+    await updateHistoryCount();
+    // Capture any very early interaction that happened while IndexedDB opened.
+    if (hasJobContent() && !record) scheduleHistorySave();
+  } catch (err) {
+    historyReady = true;
+    historyError = "Local history is unavailable in this browser session.";
+    currentJobId = makeJobId();
+    currentJobCreatedAt = Date.now();
+    console.warn("Omni-Animate history unavailable", err);
+  }
+}
+
 async function copyPrompt(btn) {
   const t = promptText();
   if (!t.trim()) return;
@@ -3122,7 +3984,22 @@ async function copyPrompt(btn) {
   setTimeout(() => { btn.textContent = old; }, 1200);
 }
 
+document.getElementById("historyBtn").addEventListener("click", openHistory);
+document.getElementById("newPromptBtn").addEventListener("click", startNewPrompt);
+document.getElementById("historyClose").addEventListener("click", closeHistory);
+document.getElementById("historyModal").addEventListener("click", e => {
+  if (e.target === e.currentTarget) closeHistory();
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !document.getElementById("historyModal").hidden) closeHistory();
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") saveCurrentJob();
+});
+window.addEventListener("pagehide", () => saveCurrentJob());
+
 renderStep(true); renderRail();
+historyInitPromise = initHistory();
 </script>
 </body>
 </html>
