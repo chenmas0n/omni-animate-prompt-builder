@@ -65,7 +65,7 @@ Total runtime is capped at 15 seconds; shot lengths draw from that shared budget
 | Game cinematic | Character reveal, Boss reveal, Combat beat, Environment flythrough, Cutscene dialogue, Vehicle reveal |
 | Game animation | Idle loop, Locomotion pass, Ability / VFX beat, MOBA champion ability showcase, Expression pass |
 | VFX exploration | VFX sheet → graybox, 360° readability test, Impact & scale test, Ambient VFX loop |
-| Storyboard & animation | Storyboard → sequence, Storyboard + character, Pose sheet → motion, Animation in graybox |
+| Storyboard & animation | Storyboard → sequence, Storyboard cast + environment, Pose sheet → motion, Animation in graybox |
 | Game marketing | Roster line-up, Logo sting, Gameplay montage |
 | UI/UX visual design | Menu flow showcase, UI transition exploration, Graphic element motion system, Logo & title package, HUD motion pass |
 | Product | Product turntable, Hero reveal, Macro detail pass, Three-shot product spot |
@@ -85,10 +85,12 @@ and durations are scaled to fit the runtime cap after expansion.
 - For a VFX concept/progression sheet, leave its tag on **Auto detect** or choose
   **VFX sheet**, then use **VFX sheet → graybox** to see anticipation, emission, impact
   and decay in an empty measured game-level scene.
-- For a storyboard, tag the board **Storyboard** and any separate design image
-  **Character**, then choose **Storyboard + character**. Panel composition and acting come
-  from the board; identity, costume, proportions, materials and colour come from the
-  character reference.
+- For a storyboard, tag the board **Storyboard**, each cast design **Character**, and the
+  setting design **Environment**. On each character, use **Storyboard assignment** to name
+  its drawn role (for example, “masked hero on the left”); use the environment assignment
+  to say which panels or scenes it replaces. Then choose **Storyboard cast + environment**.
+  Panel composition, acting and camera come from the board, character identity comes from
+  the cast references, and the final setting comes from the environment reference.
 - For pose sheets or keyframes, use **Animation / poses** with **Pose sheet → motion**.
   The generated sequence preserves pose order, contacts, facing direction, silhouette and
   motion arcs.

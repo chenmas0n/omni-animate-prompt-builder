@@ -1285,24 +1285,24 @@ const PRESETS = [
         scene:"the final storyboard panel held in its intended closing composition",
         action:"the last action resolves into the panel's end pose and holds" }] },
 
-  { id:"storyboard-character", group:"Storyboard & animation", name:"Storyboard + character", pv:["light","three-point"],
-    sum:"Use the board for acting and camera, but replace its drawn figure with your tagged character.",
-    guidance:"The storyboard supplies ordered panels, acting, poses, blocking and camera. Character-tagged references are authoritative for identity, costume, proportions, materials and colour. Cast each character reference into the matching storyboard role without copying the board's sketch style. Create one shot per panel up to the limit.",
-    output:"Use the storyboard for sequence, poses, blocking and camera, while using tagged character references for final identity, costume, proportions, materials and colour. Do not inherit the board's sketch style.",
+  { id:"storyboard-character", group:"Storyboard & animation", name:"Storyboard cast + environment", pv:["light","three-point"],
+    sum:"Cast your tagged characters into storyboard roles, animate the panels and rebuild the setting from an environment reference.",
+    guidance:"The storyboard is authoritative for panel order, camera, framing, blocking, screen direction, poses and action. Character-tagged references are authoritative for identity, face, costume, proportions, materials and colour. Treat each character's assignment note as an explicit mapping to a drawn role; otherwise match roles from names, visible traits and upload order. Keep that cast mapping unchanged in every panel, never merging or swapping characters. Environment-tagged references are authoritative for architecture, terrain, props, materials, palette and lighting. Use environment assignment notes to choose which panels they belong to; with one environment, use it throughout. Preserve the storyboard's perspective and spatial layout while replacing its drawn setting with the assigned environment. Create one shot per legible panel up to the limit, animating the visible action into each panel's end pose and maintaining continuity between panels. Do not copy the storyboard's sketch style.",
+    output:"Follow the storyboard's panel order, camera, blocking, poses and action. Cast every tagged character into its assigned storyboard role and keep identity, costume and role continuity exact across all panels. Rebuild the drawn setting from the assigned environment reference while preserving the board's perspective and layout. Animate the action between boarded poses; do not inherit the board's sketch style.",
     style:"render", cadence:"24", atmos:[], endWith:"hold",
     recipe:[
       { role:"once", dur:4, framing:"ws", angle:"eye", lens:"35", dof:"deep", motion:["locked"], speed:"slow",
         light:"three-point", temp:"neutral", transIn:"cut",
-        scene:"{character|the character} placed into the first storyboard panel's environment, framing and pose",
-        action:"the character begins the board's first action while preserving the panel's screen direction" },
+        scene:"the assigned character cast placed into {environment|the first storyboard panel's setting}, matching the panel's framing, blocking and opening poses",
+        action:"the cast begins the board's first action while preserving role assignments and screen direction" },
       { role:"once", dur:5, framing:"ms", angle:"tq", lens:"50", dof:"moderate", motion:["steadicam"], speed:"steady",
         light:"three-point", temp:"neutral", transIn:"cut",
-        scene:"{character|the same character} in the next storyboard composition with design unchanged",
-        action:"the performance follows the next drawn pose and action beat, maintaining continuity" },
+        scene:"the same assigned cast and environment in the next storyboard composition with identities, costumes and spatial layout unchanged",
+        action:"the performance interpolates into the next drawn poses and action beat without swapping roles or breaking continuity" },
       { role:"once", dur:5, framing:"mcu", angle:"eye", lens:"85", dof:"shallow", motion:["locked"], speed:"slow",
         light:"soft-key", temp:"neutral", transIn:"cut",
-        scene:"the board's final character framing rebuilt with the tagged character's face, costume and proportions",
-        action:"the final expression and body pose resolve exactly as boarded" }] },
+        scene:"the board's final framing rebuilt with the assigned characters and environment at their authored positions",
+        action:"the final expressions and body poses resolve exactly as boarded, with character and environment continuity intact" }] },
 
   { id:"pose-sheet-motion", group:"Storyboard & animation", name:"Pose sheet → motion", pv:["motion","truck-r"],
     sum:"Interpolate key poses in reading order without losing silhouette or character design.",
@@ -2543,7 +2543,8 @@ function directorPrompt(p) {
     "- A storyboard is an ordered shot plan. Read every panel in normal visual reading order. Preserve panel order, framing, angle, blocking, screen direction, action and cuts. Do not use its sketch style unless it is also tagged Style.",
     "- A VFX sheet is effect design and timing reference, not a background or a flat object. Infer anticipation, emission, travel, impact, secondary motion and decay from the visible stages.",
     "- An animation or pose sheet is an ordered set of key poses. Preserve contacts, silhouette, facing direction and motion arcs; interpolate between the keys.",
-    "- Character references are authoritative for identity, costume, proportions, materials and colour. Cast them into storyboard or animation roles while preserving the source sequence.",
+    "- Character references are authoritative for identity, costume, proportions, materials and colour. In storyboard presets, treat their user direction notes as explicit role assignments. Keep each character mapped to the same role in every panel; never merge, duplicate or swap identities.",
+    "- Environment references are authoritative for architecture, terrain, props, materials, palette and lighting. Treat their user direction notes as panel or scene assignments. Preserve storyboard perspective, composition and blocking while rebuilding the drawn setting from the assigned environment.",
     "- A UI layout is an exact screen state and hierarchy. Preserve viewport, component bounds, spacing, alignment and navigation relationships; infer a flow only from visible labels, hierarchy and user notes.",
     "- Logo, text, icon and graphic references are exact production assets. Preserve words, letterforms, mark geometry, icon meaning, aspect ratio and colour. Animate them in screen space; never redraw, replace, warp or hallucinate their content.",
     "- For UI/UX presets keep the viewport straight-on and fixed, with no camera movement or invented 3D environment. Transitions must resolve to crisp, fully legible source layouts.",
@@ -3333,19 +3334,26 @@ function renderRefs() {
         }
         body.appendChild(list);
       }
-      if (["auto","vfx","storyboard","animation","ui","logo","text","icon","graphic"].includes(r.cat)) {
-        body.appendChild(el("span", "reflabel", "Sequence / direction notes (optional)"));
+      if (["auto","character","environment","vfx","storyboard","animation","ui","logo","text","icon","graphic"].includes(r.cat)) {
+        const assigning = ["character","environment"].includes(r.cat);
+        body.appendChild(el("span", "reflabel", assigning
+          ? "Storyboard assignment (optional)"
+          : "Sequence / direction notes (optional)"));
         const notes = Object.assign(document.createElement("textarea"), {
           value:r.notes || "", rows:3,
-          placeholder:r.cat === "vfx"
-            ? "Example: cast from left to right, hold the impact, then dissipate"
-            : r.cat === "animation"
-              ? "Example: poses read left to right; keep the planted foot fixed"
-              : r.cat === "ui"
-                ? "Example: main menu → loadout → detail panel → back to menu"
-                : ["logo","text","icon","graphic"].includes(r.cat)
-                  ? "Example: reveal after the banner, overshoot slightly, then lock into place"
-                  : "Example: panels read left to right, then continue on the second row",
+          placeholder:r.cat === "character"
+            ? "Example: cast as the masked hero on the left in every panel"
+            : r.cat === "environment"
+              ? "Example: use for every panel; preserve the storyboard's camera and layout"
+              : r.cat === "vfx"
+                ? "Example: cast from left to right, hold the impact, then dissipate"
+                : r.cat === "animation"
+                  ? "Example: poses read left to right; keep the planted foot fixed"
+                  : r.cat === "ui"
+                    ? "Example: main menu → loadout → detail panel → back to menu"
+                    : ["logo","text","icon","graphic"].includes(r.cat)
+                      ? "Example: reveal after the banner, overshoot slightly, then lock into place"
+                      : "Example: panels read left to right, then continue on the second row",
         });
         notes.className = "refnotes";
         notes.addEventListener("input", () => { r.notes = notes.value; refreshPrompt(); });
